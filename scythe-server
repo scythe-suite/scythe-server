@@ -1,5 +1,7 @@
 #!/bin/bash
 
+VERSION=0.1.0
+
 export TEACHER_ID="$1" # this is safe since it is in .ssh/authorized_keys
 if [ -z "$TEACHER_ID" ]; then
     echo "scythe-remote: missing TEACHER_ID" >&2
@@ -26,19 +28,16 @@ start() {
     local conf="$SCYTHE_ROOT/conf.py"
     local uploads="$SCYTHE_ROOT/uploads"
     local name="${TEACHER_ID}-${EXAM_ID}"
-    local base_url="http://$(hostname)/tm/$TEACHER_ID/"
+    local base_url="http://$(hostname)/tm/$TEACHER_ID/$EXAM_ID/"
 
     if [ ! -r "$conf" ]; then
         echo "scythe-remote start: missing '$EXAM_ID' configuration for teacher '$TEACHER_ID'" >&2
         exit 1
     fi
-    edconf=$(mktemp /tmp/output.XXXXXXXXXX) || { echo "scythe-remote start: failed to create temp file" >&2; exit 1; }
-    sed 's/^UPLOAD_DIR\s*=.*/UPLOAD_DIR = "\/uploads"/' "$conf" | sed "1i BASE_URL = '$base_url'" > "$edconf"
-
     if docker ps -a --filter label=scythe=tm  | grep -q "$name"; then
         echo "scythe-remote start: killing old instance..." $(docker rm -f "$name") >&2
     fi
-    did=$(docker run -l scythe=tm --name "$name" -d --network=scythe -v "$uploads":/uploads -v "$edconf":/app/conf.py:ro scythe/tm)
+    did=$(docker run -l scythe=tm --name "$name" -d --network=scythe -v "$uploads":/uploads -v "$conf":/app/conf.py:ro scythe/tm)
     echo "scythe-remote start: running container '$name' with conf '$conf', uploads in '$uploads' and base url '$base_url' (docker id '$did')..." 2>&1
 }
 
@@ -66,6 +65,9 @@ case "$command" in
         echo "scythe-remote: tailing '$EXAM_ID' logs for teacher '$TEACHER_ID', hit ctrl-c to stop..." >&2
         tail -f "$SCYTHE_ROOT/uploads"/*.log
     ;;
+    version)
+        echo "scythe-remote: veersion $VERSION" >&2
+        exit 0
     *)
         echo "scythe-remote: command '$command' not recognized" >&2
         exit 1
