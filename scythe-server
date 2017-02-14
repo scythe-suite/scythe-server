@@ -1,10 +1,10 @@
 #!/bin/bash
 
-VERSION=0.1.0
+SCYTHE_SERVER_VERSION=0.1.0
 
 export TEACHER_ID="$1" # this is safe since it is in .ssh/authorized_keys
 if [ -z "$TEACHER_ID" ]; then
-    echo "scythe-remote: missing TEACHER_ID" >&2
+    echo "scythe-server: missing TEACHER_ID" >&2
     exit 1
 fi
 
@@ -12,63 +12,76 @@ arguments=($SSH_ORIGINAL_COMMAND)
 command="${arguments[0]}"
 export EXAM_ID="${arguments[1]}"
 if [ -z "$EXAM_ID" ]; then
-    echo "scythe-remote: missing EXAM_ID" >&2
+    echo "scythe-server: missing EXAM_ID" >&2
     exit 1
 fi
+
 export SCYTHE_ROOT="$HOME/scythe-root/$TEACHER_ID/$EXAM_ID"
+export SCYTHE_CONF="$SCYTHE_ROOT/conf.py"
+export SCYTHE_UPLOADS="$SCYTHE_ROOT/uploads"
+export SCYTHE_NAME="${TEACHER_ID}-${EXAM_ID}"
+
 mkdir -p "$SCYTHE_ROOT"
-mkdir -p "$SCYTHE_ROOT/uploads"
-if [ ! -r "$SCYTHE_ROOT/uploads/no.log" ]; then
-    touch "$SCYTHE_ROOT/uploads/no.log" # to avoid tail failures
+mkdir -p "$SCYTHE_UPLOADS"
+if [ ! -r "$SCYTHE_UPLOADS/no.log" ]; then
+    touch "$SCYTHE_UPLOADS/no.log" # to avoid tail failures
 fi
 
-echo "$SSH_ORIGINAL_COMMAND"  > /home/scythe/command
+echo -e "$(date)\t$SSH_CONNECTION\t$TEACHER_ID\t$SSH_ORIGINAL_COMMAND" >> "$HOME/scythe-server.log"
 
-start() {
-    local conf="$SCYTHE_ROOT/conf.py"
-    local uploads="$SCYTHE_ROOT/uploads"
-    local name="${TEACHER_ID}-${EXAM_ID}"
-    local base_url="http://$(hostname)/tm/$TEACHER_ID/$EXAM_ID/"
-
-    if [ ! -r "$conf" ]; then
-        echo "scythe-remote start: missing '$EXAM_ID' configuration for teacher '$TEACHER_ID'" >&2
+check_conf() {
+    if [ ! -r "SCYTHE_CONF" ]; then
+        echo "scythe-server: missing configuation '$SCYTHE_CONF' for teacher '$TEACHER_ID'" >&2
         exit 1
     fi
-    if docker ps -a --filter label=scythe=tm  | grep -q "$name"; then
-        echo "scythe-remote start: killing old instance..." $(docker rm -f "$name") >&2
-    fi
-    did=$(docker run -l scythe=tm --name "$name" -d --network=scythe -v "$uploads":/uploads -v "$conf":/app/conf.py:ro scythe/tm)
-    echo "scythe-remote start: running container '$name' with conf '$conf', uploads in '$uploads' and base url '$base_url' (docker id '$did')..." 2>&1
 }
 
 case "$command" in
     push)
+        if [ -r "$SCYTHE_ROOT/conf.py" ]; then
+            echo "scythe-server push: replacing '$EXAM_ID' configuration for teacher '$TEACHER_ID'" >&2
+        else
+            echo "scythe-server push: installing '$EXAM_ID' configuration for teacher '$TEACHER_ID'" >&2
+        fi
         cat > "$SCYTHE_ROOT/conf.py"
-        echo "scythe-remote: installed '$EXAM_ID' configuration for teacher '$TEACHER_ID'" >&2
     ;;
     start)
-        echo "scythe-remote: starting '$EXAM_ID' for teacher '$TEACHER_ID'" >&2
-        start
+        check_conf
+        echo "scythe-server start: about to start '$EXAM_ID' for teacher '$TEACHER_ID'" >&2
+        if docker ps -a --filter label=scythe=tm | grep -q "$name"; then
+            echo "scythe-server sart: killing old instance..." $(docker rm -f "$name") >&2
+        fi
+        did=$(docker run -l scythe=tm --name "$name" -d --network=scythe -v "$uploads":/uploads -v "$conf":/app/conf.py:ro scythe/tm)
+        echo "scythe-server start: started container '$name' with conf '$conf', and uploads in '$uploads' (docker id '$did')..." 2>&1
     ;;
     stop)
-        echo "scythe-remote: stopping '$EXAM_ID' for teacher '$TEACHER_ID'" >&2
-        docker rm -f "${TEACHER_ID}-${EXAM_ID}"
+        check_conf
+        echo "scythe-server stop: stopping '$EXAM_ID' for teacher '$TEACHER_ID'" >&2
+        if docker ps -a --filter label=scythe=tm | grep -q "$name"; then
+            echo "scythe-server stop: killing old instance..." $(docker rm -f "$name") >&2
+        else
+            echo "scythe-server stop: no running container found" >&2
+        fi
     ;;
     status)
-        echo "scythe-remote: running sessions for teacher '$TEACHER_ID'" >&2
+        check_conf
+        echo "scythe-server status: running sessions for teacher '$TEACHER_ID'" >&2
         docker ps --filter label=scythe=tm | grep "${TEACHER_ID}"
     ;;
     get)
+        check_conf
         rsync --server --sender -vlogDtprz . "$SCYTHE_ROOT/uploads"
     ;;
     logtail)
-        echo "scythe-remote: tailing '$EXAM_ID' logs for teacher '$TEACHER_ID', hit ctrl-c to stop..." >&2
+        check_conf
+        echo "scythe-server logtail: tailing '$EXAM_ID' logs for teacher '$TEACHER_ID', hit ctrl-c to stop..." >&2
         tail -f "$SCYTHE_ROOT/uploads"/*.log
     ;;
     version)
-        echo "scythe-remote: veersion $VERSION" >&2
+        echo "scythe-server version: version v$SCYTHE_SERVER_VERSION" >&2
         exit 0
+    ;;
     *)
-        echo "scythe-remote: command '$command' not recognized" >&2
+        echo "scythe-server: command '$command' not recognized" >&2
         exit 1
 esac
