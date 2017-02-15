@@ -9,7 +9,7 @@ if [ -z "$TEACHER_ID" ]; then
 fi
 
 arguments=($SSH_ORIGINAL_COMMAND)
-command="${arguments[0]}"
+export SCYTHE_COMMAND="${arguments[0]}"
 export EXAM_ID="${arguments[1]}"
 if [ -z "$EXAM_ID" ]; then
     echo "scythe-server: missing EXAM_ID" >&2
@@ -27,7 +27,7 @@ if [ ! -r "$SCYTHE_UPLOADS/no.log" ]; then
     touch "$SCYTHE_UPLOADS/no.log" # to avoid tail failures
 fi
 
-echo -e "$(date)\t$SSH_CONNECTION\t$TEACHER_ID\t$SSH_ORIGINAL_COMMAND" >> "$HOME/scythe-server.log"
+echo -e "$(date)\t$SSH_CONNECTION\t$TEACHER_ID\t$SCYTHE_COMMAND\t$SCYTHE_CONF" >> "$HOME/scythe-server.log"
 
 check_conf() {
     if [ ! -r "$SCYTHE_CONF" ]; then
@@ -36,7 +36,7 @@ check_conf() {
     fi
 }
 
-case "$command" in
+case "$SCYTHE_COMMAND" in
     push)
         if [ -r "$SCYTHE_ROOT/conf.py" ]; then
             echo "scythe-server push: replacing '$EXAM_ID' configuration for teacher '$TEACHER_ID'" >&2
@@ -82,6 +82,6 @@ case "$command" in
         exit 0
     ;;
     *)
-        echo "scythe-server: command '$command' not recognized" >&2
+        echo "scythe-server: command '$SCYTHE_COMMAND' not recognized" >&2
         exit 1
 esac
