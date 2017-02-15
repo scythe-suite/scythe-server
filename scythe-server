@@ -47,6 +47,8 @@ case "$SCYTHE_COMMAND" in
     ;;
     start)
         check_conf
+        echo "scythe-server start: removing signature for test UID '000000' in '$EXAM_ID' for teacher '$TEACHER_ID'" >&2
+        rm -f "$SCYTHE_UPLOADS/000000/SIGNATURE.tsv"
         echo "scythe-server start: about to start '$EXAM_ID' for teacher '$TEACHER_ID'" >&2
         if docker ps -a --filter label=scythe=tm | grep -q "$SCYTHE_NAME"; then
             echo "scythe-server sart: killing old instance..." $(docker rm -f "$SCYTHE_NAME") >&2
