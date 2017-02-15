@@ -48,17 +48,17 @@ case "$command" in
     start)
         check_conf
         echo "scythe-server start: about to start '$EXAM_ID' for teacher '$TEACHER_ID'" >&2
-        if docker ps -a --filter label=scythe=tm | grep -q "$name"; then
-            echo "scythe-server sart: killing old instance..." $(docker rm -f "$name") >&2
+        if docker ps -a --filter label=scythe=tm | grep -q "$SCYTHE_NAME"; then
+            echo "scythe-server sart: killing old instance..." $(docker rm -f "$SCYTHE_NAME") >&2
         fi
-        did=$(docker run -l scythe=tm --name "$name" -d --network=scythe -v "$uploads":/uploads -v "$conf":/app/conf.py:ro scythe/tm)
-        echo "scythe-server start: started container '$name' with conf '$conf', and uploads in '$uploads' (docker id '$did')..." 2>&1
+        did=$(docker run -l scythe=tm --name "$SCYTHE_NAME" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_CONF":/app/conf.py:ro scythe/tm)
+        echo "scythe-server start: started container '$SCYTHE_NAME' with conf '$SCYTHE_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." 2>&1
     ;;
     stop)
         check_conf
         echo "scythe-server stop: stopping '$EXAM_ID' for teacher '$TEACHER_ID'" >&2
-        if docker ps -a --filter label=scythe=tm | grep -q "$name"; then
-            echo "scythe-server stop: killing old instance..." $(docker rm -f "$name") >&2
+        if docker ps -a --filter label=scythe=tm | grep -q "$SCYTHE_NAME"; then
+            echo "scythe-server stop: killing old instance..." $(docker rm -f "$SCYTHE_NAME") >&2
         else
             echo "scythe-server stop: no running container found" >&2
         fi
