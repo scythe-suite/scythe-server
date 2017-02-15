@@ -30,7 +30,7 @@ fi
 echo -e "$(date)\t$SSH_CONNECTION\t$TEACHER_ID\t$SSH_ORIGINAL_COMMAND" >> "$HOME/scythe-server.log"
 
 check_conf() {
-    if [ ! -r "SCYTHE_CONF" ]; then
+    if [ ! -r "$SCYTHE_CONF" ]; then
         echo "scythe-server: missing configuation '$SCYTHE_CONF' for teacher '$TEACHER_ID'" >&2
         exit 1
     fi
