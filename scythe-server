@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCYTHE_SERVER_VERSION=0.1.0
+SCYTHE_SERVER_VERSION=0.2.0
 
 export TEACHER_ID="$1" # this is safe since it is in .ssh/authorized_keys
 if [ -z "$TEACHER_ID" ]; then
@@ -72,7 +72,7 @@ case "$SCYTHE_COMMAND" in
     ;;
     get)
         check_conf
-        rsync --server --sender -vlogDtprz . "$SCYTHE_ROOT/uploads"
+        rsync --server --sender -vlogDtprz . "${SCYTHE_UPLOADS}/" # the leading / is crucial to have the content without uploads/ on the client
     ;;
     logtail)
         check_conf
