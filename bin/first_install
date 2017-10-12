@@ -1,0 +1,7 @@
+#!/bin/bash
+
+last=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-suite/scythe-server/releases/latest")
+echo "scythe: installing version ${last##*/}..."
+url="https://github.com/scythe-suite/scythe-server/releases/download/${last##*/}/"
+echo "scythe: installing commands"
+curl -sL $url/commands.tgz | tar zxvf -
