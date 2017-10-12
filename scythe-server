@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCYTHE_SERVER_VERSION=0.2.0
+SCYTHE_SERVER_VERSION=0.6.0
 
 export TEACHER_ID="$1" # this is safe since it is in .ssh/authorized_keys
 if [ -z "$TEACHER_ID" ]; then
@@ -9,8 +9,16 @@ if [ -z "$TEACHER_ID" ]; then
 fi
 
 arguments=($SSH_ORIGINAL_COMMAND)
-export SCYTHE_COMMAND="${arguments[0]}"
-export EXAM_ID="${arguments[1]}"
+
+export SCYTHE_VERSION="${arguments[0]}"
+if [ "$SCYTHE_SERVER_VERSION" != "$SCYTHE_VERSION" ]; then
+    echo "scythe-server: version mismatch: client is '$SCYTHE_VERSION', server is '$SCYTHE_SERVER_VERSION'" >&2
+    exit 1
+fi
+
+export SCYTHE_COMMAND="${arguments[1]}"
+
+export EXAM_ID="${arguments[2]}"
 if [ -z "$EXAM_ID" ]; then
     echo "scythe-server: missing EXAM_ID" >&2
     exit 1
