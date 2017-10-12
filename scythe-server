@@ -61,7 +61,7 @@ case "$SCYTHE_COMMAND" in
         if docker ps -a --filter label=scythe=tm | grep -q "$SCYTHE_NAME"; then
             echo "scythe-server sart: killing old instance..." $(docker rm -f "$SCYTHE_NAME") >&2
         fi
-        did=$(docker run -l scythe=tm --name "$SCYTHE_NAME" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_CONF":/app/conf.py:ro scythe/tm)
+        did=$(docker run --user "$(id -u):$(id -g)" -l scythe=tm --name "$SCYTHE_NAME" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_CONF":/app/conf.py:ro scythe/tmserver)
         echo "scythe-server start: started container '$SCYTHE_NAME' with conf '$SCYTHE_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." 2>&1
     ;;
     stop)
