@@ -3,5 +3,7 @@
 last=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-suite/scythe-server/releases/latest")
 echo "scythe: installing version ${last##*/}..."
 url="https://github.com/scythe-suite/scythe-server/releases/download/${last##*/}/"
-echo "scythe: installing commands"
-curl -sL $url/commands.tgz | tar zxvf -
+for archive in commands example-site; do
+    echo "scythe-server: installing $archive"
+    curl -sL $url/$archive.tgz | tar zxvf -
+done

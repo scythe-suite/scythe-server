@@ -1,11 +1,41 @@
 #!/bin/bash
 
-docker rm -f router
-docker rm -f portainer
+export ADMIN_COMMAND="$1"
+shift
 
-mkdir -p "$(pwd)/var/portainer"
+case "$ADMIN_COMMAND" in
 
-docker run --name portainer -v "$(pwd)/var/portainer":/data -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock -d portainer/portainer --no-auth -H unix:///var/run/docker.sock
-docker run --name router --network scythe -p 80:80 -v "$(pwd)/etc/nginx.conf":/etc/nginx/nginx.conf:ro -v $(pwd)/html:/usr/share/nginx/html:ro -d nginx:alpine
-date > html/now.txt
-curl http://$(hostname)/now.txt
+    stop-portainer)
+        docker rm -f portainer
+    ;;
+
+    start-portainer)
+        docker run --name portainer -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock -d portainer/portainer --no-auth -H unix:///var/run/docker.sock
+    ;;
+
+    stop-router)
+        docker rm -f router
+    ;;
+
+
+    start-router)
+        HTML="$1"
+        if [ -z "$HTML" ]; then
+            echo "scythe-admin: start-router: please specify your html root" >&2
+            exit 1
+        fi
+        if [ ! -d "$HTML" ]; then
+            echo "scythe-admin: start-router: your html root '$HTML' seems not to be a directory" >&2
+            exit 1
+        fi
+        docker run --name router --network scythe -p 80:80 -v "$(realpath $HTML)":/usr/share/nginx/html:ro -d scythe/router
+        date > "$HTML/now.txt"
+        echo "scythe-admin: started router at $(curl -s http://$(hostname)/now.txt)"
+        rm -f "$HTML/now.txt"
+
+    ;;
+
+    *)
+        echo "scythe-admin: command '$ADMIN_COMMAND' not recognized" >&2
+        exit 1
+esac
