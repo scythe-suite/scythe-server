@@ -20,10 +20,12 @@ case "$ADMIN_COMMAND" in
             echo "scythe-admin: core: killing old core instances..." $(docker rm -f $dids) >&2
         fi
         did=$(docker run -l scythe=core --name scythe-portainer -p 9000:9000 -v /var/run/docker.sock:/var/run/docker.sock -d portainer/portainer --no-auth -H unix:///var/run/docker.sock)
-        echo "scythe-admin: started container 'scythe-portainer' (docker id '$did')" >&2
-        did=$(docker run -l scythe=core --name scythe-router --network scythe -p 8080:80 -v "$(realpath $HTML)":/usr/share/nginx/html:ro -d scythe/router)
+        echo "scythe-admin: core: started container 'scythe-portainer' (docker id '$did')" >&2
+        did=$(docker run --network scythe -l scythe=core --name scythe-viewer -d scythe/viewer)
+        echo "scythe-admin: core: started container 'scythe-viewer' (docker id '$did')" >&2
+        did=$(docker run -l scythe=core --name scythe-router --network scythe -p 80:80 -v "$(realpath $HTML)":/usr/share/nginx/html:ro -d scythe/router)
         date > "$HTML/now.txt"
-        echo "scythe-admin: started container 'scythe-router', html in '$HTML' at $(curl -s http://$(hostname)/now.txt) (docker id '$did')" >&2
+        echo "scythe-admin: core: started container 'scythe-router', html in '$HTML' at $(curl -s http://$(hostname)/now.txt) (docker id '$did')" >&2
         rm -f "$HTML/now.txt"
     ;;
 
@@ -38,14 +40,14 @@ case "$ADMIN_COMMAND" in
         export REDIS_VOLUME="scythe-${TESTER_ID}-redis"
         dids=$(docker ps -a --filter label="$SCYTHE_LABEL" --format '{{.ID}}')
         if [ ! -z "$dids" ]; then
-            echo "scythe-admin: core: killing old tester instances..." $(docker rm -f $dids) >&2
+            echo "scythe-admin: tester: killing old tester instances..." $(docker rm -f $dids) >&2
         fi
         did=$(docker run -l "$SCYTHE_LABEL" -d -v "$REDIS_VOLUME:/data" --name "${SCYTHE_CONTAINER}-redis" --network=scythe scythe/redis)
-        echo "started container '${SCYTHE_CONTAINER}-redis' with volume '$REDIS_VOLUME' (docker id '$did')..." 2>&1
+        echo "scythe-admin: tester: started container '${SCYTHE_CONTAINER}-redis' with volume '$REDIS_VOLUME' (docker id '$did')..." 2>&1
         did=$(docker run -l "$SCYTHE_LABEL" -d -e SCYTHE_REDIS_HOST="${SCYTHE_CONTAINER}-redis" --name "${SCYTHE_CONTAINER}-processor" --network=scythe scythe/stserver process -w 8)
-        echo "started container '${SCYTHE_CONTAINER}-processor' (docker id '$did')..." 2>&1
+        echo "scythe-admin: tester: started container '${SCYTHE_CONTAINER}-processor' (docker id '$did')..." 2>&1
         did=$(docker run -l "$SCYTHE_LABEL" -d -e SCYTHE_REDIS_HOST="${SCYTHE_CONTAINER}-redis" --name "${SCYTHE_CONTAINER}-web" --network=scythe scythe/stserver web)
-        echo "started container '${SCYTHE_CONTAINER}-web' (docker id '$did')..." 2>&1
+        echo "scythe-admin: tester: started container '${SCYTHE_CONTAINER}-web' (docker id '$did')..." 2>&1
     ;;
 
     *)

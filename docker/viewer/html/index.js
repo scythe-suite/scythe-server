@@ -1,7 +1,5 @@
 const DEBUG = false;
 
-const REDIS_URL = 'http://reaper.srv.di.unimi.it:8080/st/santini';
-
 const STORE = {
     session: { // predeclared for mutation detection
         id: null,
@@ -131,12 +129,12 @@ const TheDetail = Vue.component('the-detail', {
     }
 });
 
-function set_details(uid, timestamp, exercise) {
+function set_details(tester, uid, timestamp, exercise) {
     if (uid == STORE.details.uid && timestamp == STORE.details.timestamp && exercise == STORE.details.exercise) return;
     axios.all([
-        axios.get(`${REDIS_URL}/solutions/${uid}/${timestamp}/${exercise}`),
-        axios.get(`${REDIS_URL}/results/${uid}/${timestamp}/${exercise}`),
-        axios.get(`${REDIS_URL}/compilations/${uid}/${timestamp}/${exercise}`),
+        axios.get(`/st/${tester}/solutions/${uid}/${timestamp}/${exercise}`),
+        axios.get(`/st/${tester}/results/${uid}/${timestamp}/${exercise}`),
+        axios.get(`/st/${tester}/compilations/${uid}/${timestamp}/${exercise}`),
     ]).then(axios.spread(function(solutions, results, compilation) {
         Object.assign(STORE.details, {
             uid: uid,
@@ -151,13 +149,13 @@ function set_details(uid, timestamp, exercise) {
     }));
 }
 
-function set_session(session) {
+function set_session(tester, session) {
     if (session == STORE.session.id) return;
     axios.all([
-        axios.get(`${REDIS_URL}/uids/${session}`),
-        axios.get(`${REDIS_URL}/summaries/${session}`),
-        axios.get(`${REDIS_URL}/texts/${session}`),
-        axios.get(`${REDIS_URL}/cases/${session}`)
+        axios.get(`/st/${tester}/uids/${session}`),
+        axios.get(`/st/${tester}/summaries/${session}`),
+        axios.get(`/st/${tester}/texts/${session}`),
+        axios.get(`/st/${tester}/cases/${session}`)
     ]).then(axios.spread(function(uids, summaries, texts, cases) {
         Object.assign(STORE.session, {
             id: session,
@@ -174,11 +172,11 @@ function set_session(session) {
 
 function onHashchange() {
     let hash = window.location.hash.split('/');
-    if (hash[0] == '#s' && hash.length == 2) {
-        set_session(hash[1]);
+    if (hash[0] == '#s' && hash.length == 3) {
+        set_session(hash[1], hash[2]);
         app.currentView = 'the-summary';
-    } else if (hash[0] == '#d' && STORE.session.id && hash.length == 4) {
-        set_details(hash[1], hash[2], hash[3]);
+    } else if (hash[0] == '#d' && STORE.session.id && hash.length == 5) {
+        set_details(hash[1], hash[2], hash[3], hash[4]);
         app.currentView = 'the-detail';
     } else {
         app.currentView = 'the-home';

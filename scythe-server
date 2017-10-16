@@ -83,7 +83,7 @@ case "$SCYTHE_COMMAND" in
         did=$(docker run -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/stserver stage -wH /uploads -s "$SESSION_ID")
         echo "scythe-server: start: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
         echo "scythe-server: start: attempting to sign..."
-        docker run --rm -it --entrypoint sh scythe/stserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python -c 'from urllib2 import urlopen; exec urlopen( \"http://localhost:8080/tm/$TESTER_ID/$SESSION_ID/000000\" ).read()' ) && cd /tmp/test && find"
+        docker run --network scythe --rm -it --entrypoint sh scythe/stserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python -c 'from urllib2 import urlopen; exec urlopen( \"http://scythe-router/tm/$TESTER_ID/$SESSION_ID/000000\" ).read()' ) && cd /tmp/test && find"
     ;;
     stop)
         check_conf

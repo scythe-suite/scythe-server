@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+
   <title>Scythe Viewer</title>
 
   <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap@next/dist/css/bootstrap.min.css"/>
@@ -16,11 +17,13 @@
   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
 
 </head>
+
 <body>
     <div id='app'><b-container fluid><b-row><b-col>
         <component :is='currentView'></component>
     </b-col></b-row></b-container></div>
 </body>
+
 <script type="text/x-template" id="home-template">
     <b-alert show variant="warning">
       <h3 class="alert-heading">Scythe Viewer</h3>
