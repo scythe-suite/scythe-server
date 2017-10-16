@@ -29,7 +29,7 @@ export SCYTHE_TM_CONF="$SCYTHE_ROOT/conf-tm.py"
 export SCYTHE_ST_CONF="$SCYTHE_ROOT/conf-st.py"
 export SCYTHE_UPLOADS="$SCYTHE_ROOT/uploads"
 export SCYTHE_NAME="${TESTER_ID}-${SESSION_ID}"
-export SCYTHE_SESSION="scythe=session-${SCYTHE_NAME}"
+export SCYTHE_LABEL="scythe=session-${SCYTHE_NAME}"
 
 mkdir -p "$SCYTHE_ROOT"
 mkdir -p "$SCYTHE_UPLOADS"
@@ -71,22 +71,24 @@ case "$SCYTHE_COMMAND" in
     ;;
     start)
         check_conf
+        echo "scythe-server: start: about to start '$SESSION_ID' for tester '$TESTER_ID'" >&2
         echo "scythe-server: start: removing signature for test UID '000000' in '$SESSION_ID' for tester '$TESTER_ID'" >&2
         rm -f "$SCYTHE_UPLOADS/000000/SIGNATURE.tsv"
-        echo "scythe-server: start: about to start '$SESSION_ID' for tester '$TESTER_ID'" >&2
-        dids=$(docker ps -a --filter label="$SCYTHE_SESSION" --format '{{.ID}}')
+        dids=$(docker ps -a --filter label="$SCYTHE_LABEL" --format '{{.ID}}')
         if [ ! -z "$dids" ]; then
             echo "scythe-server: sart: killing old instances..." $(docker rm -f $dids) >&2
         fi
-        did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_SESSION" --name "scythe-${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_TM_CONF":/app/conf.py:ro scythe/tmserver)
+        did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_TM_CONF":/app/conf.py:ro scythe/tmserver)
         echo "scythe-server: start: started tm 'scythe-${SCYTHE_NAME}-tm' with conf '$SCYTHE_TM_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
-        did=$(docker run -l "$SCYTHE_SESSION" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/stserver stage -wH /uploads -s "$SESSION_ID")
+        did=$(docker run -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/stserver stage -wH /uploads -s "$SESSION_ID")
         echo "scythe-server: start: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
+        echo "scythe-server: start: attempting to sign..."
+        docker run --rm -it --entrypoint sh scythe/stserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python -c 'from urllib2 import urlopen; exec urlopen( \"http://localhost:8080/tm/$TESTER_ID/$SESSION_ID/000000\" ).read()' ) && cd /tmp/test && find"
     ;;
     stop)
         check_conf
         echo "scythe-server: stop: stopping '$SESSION_ID' containers for tester '$TESTER_ID'" >&2
-        dids=$(docker ps -a --filter label="$SCYTHE_SESSION" --format '{{.ID}}')
+        dids=$(docker ps -a --filter label="$SCYTHE_LABEL" --format '{{.ID}}')
         if [ ! -z "$dids" ]; then
             echo "scythe-server: stop: killing old session instances..." $(docker rm -f $dids) >&2
         else
@@ -96,7 +98,7 @@ case "$SCYTHE_COMMAND" in
     status)
         check_conf
         echo "scythe-server: status: running sessions for tester '$TESTER_ID'" >&2
-        docker ps --filter label="$SCYTHE_SESSION" --format "table {{.ID}}\t{{.Names}}\t{{.Labels}}"
+        docker ps --filter label="$SCYTHE_LABEL" --format "table {{.ID}}\t{{.Names}}\t{{.Labels}}"
     ;;
     get)
         check_conf

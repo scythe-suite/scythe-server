@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Scythe Viewer</title>
+
+  <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap@next/dist/css/bootstrap.min.css"/>
+  <link type="text/css" rel="stylesheet" href="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.css"/>
+  <link type="text/css" rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css">
+  <link type="text/css" rel="stylesheet" href="index.css">
+
+  <script src="//unpkg.com/vue@latest/dist/vue.js"></script>
+  <script src="//unpkg.com/babel-polyfill@latest/dist/polyfill.min.js"></script>
+  <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
+  <script src="//unpkg.com/axios@latest/dist/axios.min.js"></script>
+  <script src="//unpkg.com/marked@latest"></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+
+</head>
+<body>
+    <div id='app'><b-container fluid><b-row><b-col>
+        <component :is='currentView'></component>
+    </b-col></b-row></b-container></div>
+</body>
+<script type="text/x-template" id="home-template">
+    <b-alert show variant="warning">
+      <h3 class="alert-heading">Scythe Viewer</h3>
+      <hr>
+      <p>
+        You should have a session id in your URL, or be coming from a summary view!
+      </p>
+    </b-alert>
+</script>
+
+<script type="text/x-template" id="summary-template">
+  <b-table @row-clicked='click' small fixed striped :items='items' :fields='fields' :sortCompare='customSort'></b-table>
+</script>
+
+<script type="text/x-template" id="detail-template">
+  <b-tabs card>
+    <b-tab title="Sources" active>
+        <b-card v-for="solution in solutions" :header="solution.name" :key="solution.name">
+            <pre class="card-text"><code v-html='solution.highlighted'></code></pre>
+        </b-card>
+        <b-card v-if='details.compilation' header="Compilation errors" header-bg-variant="primary">
+            <pre class="card-text">{{details.compilation}}</pre>
+        </b-card>
+    </b-tab>
+    <b-tab :disabled='!hasIssues' title="Issues">
+        <b-card v-for="issue in issues" :header="issue.name" :key="issue.name" :header-bg-variant="issue.errors ? 'danger' : 'warning'">
+            <pre v-if='issue.errors' class="card-text">{{issue.errors}}</pre>
+            <div v-if='issue.diffs'>
+                <b-card-group deck>
+                  <b-card header="Expected"><pre class="card-text">{{cases[issue.name].expected}}</pre></b-card>
+                  <b-card header="Actual"><pre class="card-text">{{issue.actual}}</pre></b-card>
+                  <b-card header="Diffs"><pre class="card-text">{{issue.diffs}}</pre></b-card>
+                </b-card-group>
+            </div>
+        </b-card>
+    </b-tab>
+    <b-tab title="Texts">
+        <b-card v-for="text in texts" :header="text.name" :key="text.name">
+            <div v-html='text.marked' class="card-text"></div>
+        </b-card>
+    </b-tab>
+    <b-tab title="Cases">
+        <b-card v-for="name in caseNames" :header="name" :key="name">
+          <b-card-group deck>
+            <b-card v-if='cases[name].input' header="Input"><pre class="card-text">{{cases[name].input}}</pre></b-card>
+            <b-card v-if='cases[name].args' header="Args"><pre class="card-text">{{cases[name].args}}</pre></b-card>
+            <b-card header="Expected"><pre class="card-text">{{cases[name].expected}}</pre></b-card>
+          </b-card-group>
+        </b-card>
+    </b-tab>
+  </b-tabs>
+</script>
+
+<script src="index.js"></script>
+</html>
