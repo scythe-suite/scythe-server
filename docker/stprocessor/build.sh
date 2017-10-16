@@ -1,10 +1,7 @@
 #!/bin/bash -e
 
-export REPO=scythe/testrunner
+export REPO=scythe/stprocessor
 
-if [ ! -z "$1" ]; then
-    . ../deps_build.sh
-fi
 . ../deps_get.sh
 rm -f st sf wait-for
 cp -f ../deps/{st,sf,wait-for} .
@@ -15,4 +12,4 @@ docker tag $REPO:$COMMIT $REPO:$TAG
 docker tag $REPO:$COMMIT $REPO:$VERSION
 
 rm -f st sf wait-for
-. ../deps_check.sh
+. ../deps_check.sh st sf

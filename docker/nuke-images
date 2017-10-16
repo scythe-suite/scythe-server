@@ -1,0 +1,8 @@
+#!/bin/bash
+
+docker rmi -f $(docker images -qa scythe/redis)
+docker rmi -f $(docker images -qa scythe/resultscanner)
+docker rmi -f $(docker images -qa scythe/router)
+docker rmi -f $(docker images -qa scythe/testrunner)
+docker rmi -f $(docker images -qa scythe/tmserver)
+docker rmi -f $(docker images -qf dangling=true)
