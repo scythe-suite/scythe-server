@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-export REPO=scythe/resultscanner
+export REPO=scythe/ststager
 
 . ../deps_get.sh
 rm -f st sf wait-for
