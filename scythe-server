@@ -25,7 +25,8 @@ if [ -z "$SESSION_ID" ]; then
 fi
 
 export SCYTHE_ROOT="$HOME/scythe-root/$TESTER_ID/$SESSION_ID"
-export SCYTHE_CONF="$SCYTHE_ROOT/conf.py"
+export SCYTHE_TM_CONF="$SCYTHE_ROOT/conf-tm.py"
+export SCYTHE_ST_CONF="$SCYTHE_ROOT/conf-st.py"
 export SCYTHE_UPLOADS="$SCYTHE_ROOT/uploads"
 export SCYTHE_NAME="${TESTER_ID}-${SESSION_ID}"
 export SCYTHE_SESSION="scythe=session-${SCYTHE_NAME}"
@@ -39,20 +40,34 @@ fi
 echo -e "$(date)\t$SSH_CONNECTION\t$TESTER_ID\t$SCYTHE_COMMAND\t$SESSION_ID" >> "$HOME/scythe-server.log"
 
 check_conf() {
-    if [ ! -r "$SCYTHE_CONF" ]; then
-        echo "scythe-server: missing configuation '$SCYTHE_CONF' for tester '$TESTER_ID'" >&2
+    if [ ! -r "$SCYTHE_TM_CONF" ]; then
+        echo "scythe-server: missing tm configuation for tester '$TESTER_ID'" >&2
+        exit 1
+    fi
+    if [ ! -r "$SCYTHE_ST_CONF" ]; then
+        echo "scythe-server: missing st configuation for tester '$TESTER_ID'" >&2
         exit 1
     fi
 }
 
 case "$SCYTHE_COMMAND" in
-    push)
-        if [ -r "$SCYTHE_ROOT/conf.py" ]; then
-            echo "scythe-server: push: replacing '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
+    push-tm)
+        if [ -r "$SCYTHE_TM_CONF" ]; then
+            echo "scythe-server: push-tm: replacing tm '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
         else
-            echo "scythe-server: push: installing '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
+            echo "scythe-server: push-tm: installing tm '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
         fi
-        cat > "$SCYTHE_ROOT/conf.py"
+        cat > "$SCYTHE_TM_CONF"
+    ;;
+    push-st)
+        if [ -r "$SCYTHE_ST_CONF" ]; then
+            echo "scythe-server: push-st: replacing st '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
+        else
+            echo "scythe-server: push-st: installing st '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
+        fi
+        cat > "$SCYTHE_ST_CONF"
+        echo "scythe-server: push-st: loading configurations on stserver..."
+        docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
     ;;
     start)
         check_conf
@@ -60,19 +75,19 @@ case "$SCYTHE_COMMAND" in
         rm -f "$SCYTHE_UPLOADS/000000/SIGNATURE.tsv"
         echo "scythe-server: start: about to start '$SESSION_ID' for tester '$TESTER_ID'" >&2
         dids=$(docker ps -a --filter label="$SCYTHE_SESSION" --format '{{.ID}}')
-        if [ ! -z "$dids"]; then
+        if [ ! -z "$dids" ]; then
             echo "scythe-server: sart: killing old instances..." $(docker rm -f $dids) >&2
         fi
-        did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_SESSION" --name "${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_CONF":/app/conf.py:ro scythe/tmserver)
-        echo "scythe-server: start: started tmserver '${SCYTHE_NAME}-tm' with conf '$SCYTHE_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
-        did=$(docker run -l "$SCYTHE_SESSION" --name "{$SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_SESSION_ID="$SESSION_ID" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/ststager -s "$SESSION_ID")
-        echo "scythe-server: start: started ststager '${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
+        did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_SESSION" --name "scythe-${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_TM_CONF":/app/conf.py:ro scythe/tmserver)
+        echo "scythe-server: start: started tm 'scythe-${SCYTHE_NAME}-tm' with conf '$SCYTHE_TM_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
+        did=$(docker run -l "$SCYTHE_SESSION" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/stserver stage -wH /uploads -s "$SESSION_ID")
+        echo "scythe-server: start: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
     ;;
     stop)
         check_conf
         echo "scythe-server: stop: stopping '$SESSION_ID' containers for tester '$TESTER_ID'" >&2
         dids=$(docker ps -a --filter label="$SCYTHE_SESSION" --format '{{.ID}}')
-        if [ ! -z "$dids"]; then
+        if [ ! -z "$dids" ]; then
             echo "scythe-server: stop: killing old session instances..." $(docker rm -f $dids) >&2
         else
             echo "scythe-server: stop: no running container found" >&2

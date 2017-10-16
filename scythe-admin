@@ -33,17 +33,19 @@ case "$ADMIN_COMMAND" in
             echo "scythe-admin: tester: please specify the tester id" >&2
             exit 1
         fi
-        export SCYTHE_LABEL="scythe=tester-$TESTER_ID}"
+        export SCYTHE_LABEL="scythe=tester-${TESTER_ID}"
         export SCYTHE_CONTAINER="scythe-${TESTER_ID}"
         export REDIS_VOLUME="scythe-${TESTER_ID}-redis"
         dids=$(docker ps -a --filter label="$SCYTHE_LABEL" --format '{{.ID}}')
         if [ ! -z "$dids" ]; then
             echo "scythe-admin: core: killing old tester instances..." $(docker rm -f $dids) >&2
         fi
-        did=$(docker run -l "$SCYTHE_LABEL" -d -v "$REDIS_VOLUME:/data" --name "${SCYTHE_CONTAINER}-redis" --network=scythe scythe/redis:latest)
+        did=$(docker run -l "$SCYTHE_LABEL" -d -v "$REDIS_VOLUME:/data" --name "${SCYTHE_CONTAINER}-redis" --network=scythe scythe/redis)
         echo "started container '${SCYTHE_CONTAINER}-redis' with volume '$REDIS_VOLUME' (docker id '$did')..." 2>&1
-        did=$(docker run -l "$SCYTHE_LABEL" -d -e SCYTHE_REDIS_HOST="${SCYTHE_CONTAINER}-redis" --name "${SCYTHE_CONTAINER}-stprocessor" --network=scythe scythe/stprocessor:latest)
-        echo "started container '${SCYTHE_CONTAINER}-stprocessor' (docker id '$did')..." 2>&1
+        did=$(docker run -l "$SCYTHE_LABEL" -d -e SCYTHE_REDIS_HOST="${SCYTHE_CONTAINER}-redis" --name "${SCYTHE_CONTAINER}-processor" --network=scythe scythe/stserver process -w 8)
+        echo "started container '${SCYTHE_CONTAINER}-processor' (docker id '$did')..." 2>&1
+        did=$(docker run -l "$SCYTHE_LABEL" -d -e SCYTHE_REDIS_HOST="${SCYTHE_CONTAINER}-redis" --name "${SCYTHE_CONTAINER}-web" --network=scythe scythe/stserver web)
+        echo "started container '${SCYTHE_CONTAINER}-web' (docker id '$did')..." 2>&1
     ;;
 
     *)

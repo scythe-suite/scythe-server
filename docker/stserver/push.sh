@@ -1,4 +1,4 @@
 #!/bin/bash -e
 
-export REPO=scythe/testrunner
+export REPO=scythe/stserver
 docker push $REPO

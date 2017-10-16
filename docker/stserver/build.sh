@@ -1,6 +1,6 @@
 #!/bin/bash -e
 
-export REPO=scythe/ststager
+export REPO=scythe/stserver
 
 . ../deps_get.sh
 rm -f st sf wait-for
