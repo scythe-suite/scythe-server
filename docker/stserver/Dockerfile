@@ -14,7 +14,7 @@ RUN apk add --no-cache --virtual .build-deps \
         apk del .build-deps
 ENV PYTHONPATH=/bin/sf:/bin/st
 ENTRYPOINT ["/bin/entrypoint.sh"]
-CMD [ "gunicorn", "--log-level", "INFO", "--error-logfile", "-", "-k", "gevent", "-w", "4", "-b", "0.0.0.0:8000", "st.cmds.web:app" ]
+CMD [ "gunicorn", "--access-logfile", "-", "--log-level", "INFO", "--error-logfile", "-", "-k", "gevent", "-w", "4", "-b", "0.0.0.0:8000", "st.web:app" ]
 COPY sf /bin
 COPY st /bin
 COPY wait-for /bin
