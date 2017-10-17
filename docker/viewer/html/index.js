@@ -23,6 +23,21 @@ const TheHome = Vue.component('the-home', {
     template: '#home-template'
 });
 
+const TheNavbar = Vue.component('the-navbar', {
+    template: '#navbar-template',
+    data: () => ({ selected: null, options: [
+          { value: null, text: 'Please select a session' },
+          { value: 'session', text: 'session' },
+          { value: 'nope', text: 'nope' },
+        ]
+    }),
+    methods: {
+        input: function(session) {
+            window.location.hash = `#s/${session}`
+        }
+    }
+});
+
 const TheSummary = Vue.component('the-summary', {
     template: "#summary-template",
     data: () => ({session: STORE.session}),
@@ -186,7 +201,7 @@ function onHashchange() {
 
 const app = new Vue({
   el: '#app',
-  data: {currentView: 'the-summary'},
+  data: {currentView: 'the-summary'}
 })
 
 window.addEventListener('hashchange', onHashchange);

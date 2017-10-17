@@ -19,18 +19,29 @@
 </head>
 
 <body>
-    <div id='app'><b-container fluid><b-row><b-col>
-        <component :is='currentView'></component>
-    </b-col></b-row></b-container></div>
+    <div id='app'><b-container fluid>
+        <the-navbar></the-navbar>
+        <b-row><b-col><component :is='currentView'></component></b-col></b-row>
+    </b-container></div>
 </body>
+
+<script type="text/x-template" id="navbar-template">
+<b-navbar toggleable="md" type="dark" variant="info">
+  <b-navbar-brand href="#">Scythe Viewer</b-navbar-brand>
+    <b-nav is-nav-bar>
+      <b-nav-item href="#" disabled>Summary</b-nav-item>
+    </b-nav>
+    <b-nav is-nav-bar class="ml-auto"><b-nav-form>
+      <b-form-select v-model="selected" @input='input' :options="options" class="mb-3"></b-form-select>
+    </b-nav-form>
+  </div>
+    </b-nav>
+</b-navbar>
+</script>
 
 <script type="text/x-template" id="home-template">
     <b-alert show variant="warning">
-      <h3 class="alert-heading">Scythe Viewer</h3>
-      <hr>
-      <p>
-        You should have a session id in your URL, or be coming from a summary view!
-      </p>
+      You should select a session from the right dropdown, or have a session id in your URL!
     </b-alert>
 </script>
 
