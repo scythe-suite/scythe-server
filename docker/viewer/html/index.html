@@ -14,6 +14,7 @@
   <script src="//unpkg.com/bootstrap-vue@latest/dist/bootstrap-vue.js"></script>
   <script src="//unpkg.com/axios@latest/dist/axios.min.js"></script>
   <script src="//unpkg.com/marked@latest"></script>
+  <script src="//unpkg.com/vue-awesome@latest/dist/vue-awesome.js"></script>
   <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
 
 </head>
@@ -29,10 +30,11 @@
 <b-navbar toggleable="md" type="dark" variant="info">
   <b-navbar-brand href="#">Scythe Viewer</b-navbar-brand>
     <b-nav is-nav-bar>
-      <b-nav-item href="#" disabled>Summary</b-nav-item>
+      <b-nav-item href="#" @click='click' :disabled='summary'>Summary</b-nav-item>
+      <b-nav-text><icon :name='lock'></icon></b-nav-text>
     </b-nav>
     <b-nav is-nav-bar class="ml-auto"><b-nav-form>
-      <b-form-select v-model="selected" @input='input' :options="options" class="mb-3"></b-form-select>
+      <b-form-select v-model="selected" :options="options" class="mb-3"></b-form-select>
     </b-nav-form>
   </div>
     </b-nav>
@@ -49,7 +51,7 @@
   <b-table @row-clicked='click' small fixed striped :items='items' :fields='fields' :sortCompare='customSort'></b-table>
 </script>
 
-<script type="text/x-template" id="detail-template">
+<script type="text/x-template" id="details-template">
   <b-tabs card>
     <b-tab title="Sources" active>
         <b-card v-for="solution in solutions" :header="solution.name" :key="solution.name">

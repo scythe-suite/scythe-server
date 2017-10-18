@@ -1,8 +1,10 @@
 const DEBUG = true;
 
 const STORE = {
+    sessions: ['session', 'nope'],
     session: { // predeclared for mutation detection
         id: null,
+        auth: null,
         summaries: {},
         texts: {},
         cases: {},
@@ -19,22 +21,30 @@ const STORE = {
     }
 };
 
+const app = new Vue({data: {currentView: 'the-summary'}});
+
+Vue.component('icon', window.VueAwesome);
+
 const TheHome = Vue.component('the-home', {
     template: '#home-template'
 });
 
 const TheNavbar = Vue.component('the-navbar', {
     template: '#navbar-template',
-    data: () => ({ selected: null, options: [
-          { value: null, text: 'Please select a session' },
-          { value: 'session', text: 'session' },
-          { value: 'nope', text: 'nope' },
-        ]
+    data: () => ({
+        store: STORE
     }),
+    computed: {
+        options: () => STORE.sessions.map(s => ({value: s, text: s})),
+        selected: {
+            get: function() {return this.store.session.id;},
+            set: function(session) {if (session != this.store.session.id) set_summary(session);}
+        },
+        summary: () => app.currentView == 'the-summary',
+        lock: function() {return this.store.session.auth ? 'unlock': 'lock';}
+    },
     methods: {
-        input: function(session) {
-            window.location.hash = `#s/${session}`
-        }
+        click: () => app.currentView = 'the-summary'
     }
 });
 
@@ -60,7 +70,8 @@ const TheSummary = Vue.component('the-summary', {
           let idx = event.path[2].cellIndex - 2;
           let exercise = this.session.exercises[idx];
           if (!exercise) return;
-          window.location.hash = `#d/${item.uid}/${item.timestamp}/${exercise}`;
+          set_details(item.uid, item.timestamp, exercise);
+          app.currentView = 'the-details';
       },
       resultFormatter: function(value, key, item) {
           if (!STORE.session.cases[key]) return value;
@@ -101,8 +112,8 @@ const TheSummary = Vue.component('the-summary', {
     }
 });
 
-const TheDetail = Vue.component('the-detail', {
-    template: "#detail-template",
+const TheDetail = Vue.component('the-details', {
+    template: "#details-template",
     data: () => ({session: STORE.session, details: STORE.details}),
     computed: {
         hasIssues: function() {
@@ -145,7 +156,10 @@ const TheDetail = Vue.component('the-detail', {
 });
 
 function set_details(uid, timestamp, exercise) {
-    if (uid == STORE.details.uid && timestamp == STORE.details.timestamp && exercise == STORE.details.exercise) return;
+    if (uid == STORE.details.uid && timestamp == STORE.details.timestamp && exercise == STORE.details.exercise) {
+        app.currentView = 'the-details';
+        return;
+    }
     axios.all([
         axios.get(`r/solutions/${uid}/${timestamp}/${exercise}`),
         axios.get(`r/results/${uid}/${timestamp}/${exercise}`),
@@ -161,11 +175,15 @@ function set_details(uid, timestamp, exercise) {
         });
         if (DEBUG) console.log(`Updated details to '${STORE.details.uid}@${STORE.details.timestamp}/${STORE.details.exercise}'`);
         if (DEBUG) console.log(STORE.details);
+        app.currentView = 'the-details';
     }));
 }
 
-function set_session(session) {
-    if (session == STORE.session.id) return;
+function set_summary(session, auth) {
+    if (session == STORE.session.id && auth && auth == STORE.session.auth) {
+        app.currentView = 'the-summary';
+        return;
+    }
     axios.all([
         axios.get(`r/uids/${session}`),
         axios.get(`r/summaries/${session}`),
@@ -174,6 +192,7 @@ function set_session(session) {
     ]).then(axios.spread(function(uids, summaries, texts, cases) {
         Object.assign(STORE.session, {
             id: session,
+            auth: auth,
             summaries: summaries.data.summaries,
             texts: texts.data.texts,
             cases: cases.data.cases,
@@ -182,27 +201,22 @@ function set_session(session) {
         });
         if (DEBUG) console.log(`Updated session to '${STORE.session.id}'`);
         if (DEBUG) console.log(STORE.session);
+        app.currentView = 'the-summary';
+        window.location.hash = auth ? `#s/${session}/${auth}` : `#s/${session}`;
     }));
 }
 
 function onHashchange() {
     let hash = window.location.hash.split('/');
     if (DEBUG) console.log(hash);
-    if (hash[0] == '#s' && hash.length == 2) {
-        set_session(hash[1]);
-        app.currentView = 'the-summary';
-    } else if (hash[0] == '#d' && STORE.session.id && hash.length == 4) {
-        set_details(hash[1], hash[2], hash[3]);
-        app.currentView = 'the-detail';
-    } else {
+    if (hash[0] == '#s' && (hash.length == 2 || hash.length == 3))
+        set_summary(hash[1], hash[2]);
+    else
         app.currentView = 'the-home';
-    }
 }
 
-const app = new Vue({
-  el: '#app',
-  data: {currentView: 'the-summary'}
-})
 
 window.addEventListener('hashchange', onHashchange);
 onHashchange();
+
+app.$mount('#app');
