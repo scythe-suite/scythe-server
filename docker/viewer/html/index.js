@@ -185,11 +185,13 @@ function set_summary(session, auth) {
         return;
     }
     axios.all([
+        axios.get('r/sessions'),
         axios.get(`r/uids/${session}`),
         axios.get(`r/summaries/${session}`),
         axios.get(`r/texts/${session}`),
         axios.get(`r/cases/${session}`)
-    ]).then(axios.spread(function(uids, summaries, texts, cases) {
+    ]).then(axios.spread(function(sessions, uids, summaries, texts, cases) {
+        STORE.sessions = sessions.data.sessions;
         Object.assign(STORE.session, {
             id: session,
             auth: auth,
@@ -198,6 +200,14 @@ function set_summary(session, auth) {
             cases: cases.data.cases,
             uids: uids.data.uids,
             exercises: Object.keys(cases.data.cases).sort()
+        });
+        Object.assign(STORE.details, {
+            uid: null,
+            timestamp: null,
+            exercise: null,
+            solutions: {},
+            compilation: null,
+            results: {}
         });
         if (DEBUG) console.log(`Updated session to '${STORE.session.id}'`);
         if (DEBUG) console.log(STORE.session);
@@ -214,7 +224,6 @@ function onHashchange() {
     else
         app.currentView = 'the-home';
 }
-
 
 window.addEventListener('hashchange', onHashchange);
 onHashchange();
