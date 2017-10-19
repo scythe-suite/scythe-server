@@ -1,7 +1,7 @@
 const DEBUG = true;
 
 const STORE = {
-    sessions: ['session', 'nope'],
+    sessions: [],
     session: { // predeclared for mutation detection
         id: null,
         auth: null,
@@ -9,7 +9,8 @@ const STORE = {
         texts: {},
         cases: {},
         uids: [],
-        exercises: []
+        exercises: [],
+        casenum: {}
     },
     details: { // predeclared for mutation detection
         uid: null,
@@ -74,8 +75,8 @@ const TheSummary = Vue.component('the-summary', {
           app.currentView = 'the-details';
       },
       resultFormatter: function(value, key, item) {
-          if (!STORE.session.cases[key]) return value;
-          let tot = STORE.session.cases[key].length;
+          if (!STORE.session.casenum[key]) return value;
+          let tot = STORE.session.casenum[key];
           if (!value) return '&nbsp;';
           if (!value.compile) return '<div class="progress"><div class="progress-bar" role="progressbar" style="width: 100%" ></div></div>';
           return `<div class="progress">
@@ -160,10 +161,12 @@ function set_details(uid, timestamp, exercise) {
         app.currentView = 'the-details';
         return;
     }
+    let qauth = STORE.session.auth ? `?auth=${STORE.session.auth}` : '';
+    let session = STORE.session.id;
     axios.all([
-        axios.get(`r/solutions/${uid}/${timestamp}/${exercise}`),
-        axios.get(`r/results/${uid}/${timestamp}/${exercise}`),
-        axios.get(`r/compilations/${uid}/${timestamp}/${exercise}`),
+        axios.get(`r/solutions/${session}/${uid}/${timestamp}/${exercise}${qauth}`),
+        axios.get(`r/results/${session}/${uid}/${timestamp}/${exercise}${qauth}`),
+        axios.get(`r/compilations/${session}/${uid}/${timestamp}/${exercise}${qauth}`)
     ]).then(axios.spread(function(solutions, results, compilation) {
         Object.assign(STORE.details, {
             uid: uid,
@@ -184,22 +187,28 @@ function set_summary(session, auth) {
         app.currentView = 'the-summary';
         return;
     }
+    let qauth = auth ? `?auth=${auth}` : '';
     axios.all([
-        axios.get('r/sessions'),
+        axios.get(`r/sessions`),
         axios.get(`r/uids/${session}`),
-        axios.get(`r/summaries/${session}`),
-        axios.get(`r/texts/${session}`),
-        axios.get(`r/cases/${session}`)
-    ]).then(axios.spread(function(sessions, uids, summaries, texts, cases) {
+        axios.get(`r/exercises/${session}`),
+        axios.get(`r/summaries/${session}${qauth}`).catch(()=>{}),
+        axios.get(`r/texts/${session}${qauth}`).catch(()=>{}),
+        axios.get(`r/cases/${session}${qauth}`).catch(()=>{})
+    ]).catch(function(error) {
+        if (DEBUG) console.log(error);
+    }).then(axios.spread(function(sessions, uids, exercises, summaries, texts, cases) {
         STORE.sessions = sessions.data.sessions;
+        let exe2num = exercises.data.exercises;
         Object.assign(STORE.session, {
             id: session,
             auth: auth,
-            summaries: summaries.data.summaries,
-            texts: texts.data.texts,
-            cases: cases.data.cases,
             uids: uids.data.uids,
-            exercises: Object.keys(cases.data.cases).sort()
+            exercises: Object.keys(exe2num).sort(),
+            casenum: exercises.data.exercises,
+            summaries: summaries ? summaries.data.summaries : {},
+            texts: texts ? texts.data.texts : {},
+            cases: cases ? cases.data.cases : {}
         });
         Object.assign(STORE.details, {
             uid: null,
