@@ -3,22 +3,22 @@ const DEBUG = true;
 const STORE = {
     sessions: [],
     session: { // predeclared for mutation detection
-        id: null,
-        auth: null,
-        summaries: {},
-        texts: {},
-        cases: {},
-        uids: [],
-        exercises: [],
-        casenum: {}
+        id: null, // a string
+        auth: null, // a string
+        summaries: {}, // map from uids to summary objects
+        texts: {}, // map from exercise name to an array of text objects
+        cases: {}, // map from exercise name to an array of case objects
+        uids: [], // list of uids
+        exercises: [], // list of exercise names
+        casenum: {} // map from exercise name to the numer of its casess
     },
     details: { // predeclared for mutation detection
-        uid: null,
-        timestamp: null,
-        exercise: null,
-        solutions: {},
-        compilation: null,
-        results: {}
+        uid: null, // a string
+        timestamp: null, // a string
+        exercise: null, // a string
+        solutions: [], // an array of solution objects
+        compilation: null, // a string
+        results: [] // an array with an entry per case
     }
 };
 
@@ -117,37 +117,30 @@ const TheDetail = Vue.component('the-details', {
     template: "#details-template",
     data: () => ({session: STORE.session, details: STORE.details}),
     computed: {
-        hasIssues: function() {
-            if (!this.details.uid || !this.details.results) return false;
-            return (this.details.results.filter(r => r.diffs || r.errors)).length > 0;
-        },
-        issues: function() {
-            if (!this.details.uid || !this.details.results) return [];
-            return this.details.results.sort((a, b) => a.name.localeCompare(b.name)).filter(r => r.diffs || r.errors);
-        },
         solutions: function() {
-            if (!this.details.uid) return [];
             let original = this.details.solutions;
             return original.map(e => ({
                 name: e.name,
                 highlighted: hljs.highlightAuto(e.content).value
             }));
         },
+        issues: function() {
+            return this.details.results.filter(r => r.diffs || r.errors).sort((a, b) => a.name.localeCompare(b.name));
+        },
         texts: function() {
-            if (!this.details.uid) return [];
             let original = this.session.texts[this.details.exercise];
+            if (typeof original === 'undefined') return [];
             return original.map(e => ({
                 name: e.name,
                 marked: marked(e.content, {sanitize: true})
             }));
         },
         caseNames: function() {
-            if (!this.details.uid) return [];
             let original = this.session.cases[this.details.exercise];
+            if (typeof original === 'undefined') return [];
             return original.map(e => e.name).sort();
         },
         cases: function() {
-            if (!this.details.uid) return [];
             let original = this.session.cases[this.details.exercise];
             let cases = {};
             original.forEach(e => {cases[e.name] = e;});
@@ -164,17 +157,19 @@ function set_details(uid, timestamp, exercise) {
     let qauth = STORE.session.auth ? `?auth=${STORE.session.auth}` : '';
     let session = STORE.session.id;
     axios.all([
-        axios.get(`r/solutions/${session}/${uid}/${timestamp}/${exercise}${qauth}`),
-        axios.get(`r/results/${session}/${uid}/${timestamp}/${exercise}${qauth}`),
-        axios.get(`r/compilations/${session}/${uid}/${timestamp}/${exercise}${qauth}`)
-    ]).then(axios.spread(function(solutions, results, compilation) {
+        axios.get(`r/solutions/${session}/${uid}/${timestamp}/${exercise}${qauth}`).catch(()=>{}),
+        axios.get(`r/results/${session}/${uid}/${timestamp}/${exercise}${qauth}`).catch(()=>{}),
+        axios.get(`r/compilations/${session}/${uid}/${timestamp}/${exercise}${qauth}`).catch(()=>{})
+    ]).catch(function(error) {
+        if (DEBUG) console.log(error);
+    }).then(axios.spread(function(solutions, results, compilation) {
         Object.assign(STORE.details, {
             uid: uid,
             timestamp: timestamp,
             exercise: exercise,
-            solutions: solutions.data.solutions,
-            compilation: compilation.data.compilations,
-            results: results.data.results
+            solutions: solutions ? solutions.data.solutions : [],
+            compilation: compilation ? compilation.data.compilations: '',
+            results: results ? results.data.results: []
         });
         if (DEBUG) console.log(`Updated details to '${STORE.details.uid}@${STORE.details.timestamp}/${STORE.details.exercise}'`);
         if (DEBUG) console.log(STORE.details);
@@ -205,7 +200,7 @@ function set_summary(session, auth) {
             auth: auth,
             uids: uids.data.uids,
             exercises: Object.keys(exe2num).sort(),
-            casenum: exercises.data.exercises,
+            casenum: exe2num,
             summaries: summaries ? summaries.data.summaries : {},
             texts: texts ? texts.data.texts : {},
             cases: cases ? cases.data.cases : {}
@@ -214,15 +209,24 @@ function set_summary(session, auth) {
             uid: null,
             timestamp: null,
             exercise: null,
-            solutions: {},
+            solutions: [],
             compilation: null,
-            results: {}
+            results: []
         });
         if (DEBUG) console.log(`Updated session to '${STORE.session.id}'`);
         if (DEBUG) console.log(STORE.session);
         app.currentView = 'the-summary';
         window.location.hash = auth ? `#s/${session}/${auth}` : `#s/${session}`;
     }));
+}
+
+function set_sessions() {
+    axios.get(`r/sessions`).then(function(sessions) {
+        STORE.sessions = sessions.data.sessions;
+        if (DEBUG) console.log(`Known sessions '${STORE.sessions}'`);
+        app.currentView = 'the-home';
+        app.$mount('#app');
+    });
 }
 
 function onHashchange() {
@@ -235,6 +239,5 @@ function onHashchange() {
 }
 
 window.addEventListener('hashchange', onHashchange);
+set_sessions();
 onHashchange();
-
-app.$mount('#app');
