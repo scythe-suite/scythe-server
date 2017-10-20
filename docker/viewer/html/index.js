@@ -1,5 +1,7 @@
 const DEBUG = true;
 
+var ext = -1;
+
 const STORE = {
     sessions: [],
     session: { // predeclared for mutation detection
@@ -67,8 +69,9 @@ const TheSummary = Vue.component('the-summary', {
           return 0;
       },
       click: function(item, index, event) {
-          if (event.path.length < 2) return;
-          let idx = event.path[2].cellIndex - 2;
+          if (!(event.target && event.target.parentNode && event.target.parentNode.parentNode)) return;
+          let cellIndex = event.target.parentNode.parentNode.cellIndex;
+          let idx = cellIndex - 2;
           let exercise = this.session.exercises[idx];
           if (!exercise) return;
           set_details(item.uid, item.timestamp, exercise);
