@@ -1,6 +1,6 @@
 #!/bin/bash
 
-SCYTHE_SERVER_VERSION=0.6.0
+SCYTHE_SERVER_VERSION=0.6.1
 
 export TESTER_ID="$1" # this is safe since it is in .ssh/authorized_keys
 if [ -z "$TESTER_ID" ]; then
@@ -33,6 +33,10 @@ export SCYTHE_UPLOADS="$SCYTHE_ROOT/uploads"
 export SCYTHE_NAME="${TESTER_ID}-${SESSION_ID}"
 export SCYTHE_LABEL="scythe=session-${SCYTHE_NAME}"
 
+export SCYTHE_TM_ENDPOINT="http://$(hostname)/tm/$TESTER_ID/$SESSION_ID/"
+export SCYTHE_DASHBOARD="http://$(hostname)/st/$TESTER_ID/#s/$SESSION_ID/$auth"
+
+
 mkdir -p "$SCYTHE_ROOT"
 mkdir -p "$SCYTHE_UPLOADS"
 if [ ! -r "$SCYTHE_UPLOADS/no.log" ]; then
@@ -59,7 +63,11 @@ case "$SCYTHE_COMMAND" in
         else
             echo "scythe-server: push-tm: installing tm '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
         fi
-        cat > "$SCYTHE_TM_CONF"
+        cat > "$SCYTHE_TM_CONF" <<EOF
+UPLOAD_DIR = '/uploads'
+BASE_URL = '$SCYTHE_TM_ENDPOINT'
+EOF
+        cat >> "$SCYTHE_TM_CONF"
     ;;
     push-st)
         if [ -r "$SCYTHE_ST_CONF" ]; then
@@ -86,6 +94,8 @@ case "$SCYTHE_COMMAND" in
         echo "scythe-server: start: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
         echo "scythe-server: start: attempting to sign..."
         docker run --network scythe --rm -i --entrypoint sh scythe/stserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python -c 'from urllib2 import urlopen; exec urlopen( \"http://scythe-router/tm/$TESTER_ID/$SESSION_ID/000000\" ).read()' ) && cd /tmp/test && find"
+        echo "scythe-server: start: getting remote hash..."
+        curl -s "$SCYTHE_TM_ENDPOINT" && echo
     ;;
     stop)
         check_conf
@@ -101,14 +111,21 @@ case "$SCYTHE_COMMAND" in
         check_conf
         echo "scythe-server: auth: use this URL to access the dashboard with '$REMAINING_ARGS' permissions" >&2
         auth=$(docker run --network scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --rm -i scythe/stserver auth -s "$SESSION_ID" $REMAINING_ARGS)
-        echo "http://$(hostname)/st/$TESTER_ID/#s/$SESSION_ID/$auth"
+        echo "$SCYTHE_DASHBOARD"
     ;;
     status)
         check_conf
-        echo "scythe-server: status: running sessions for tester '$TESTER_ID'" >&2
-        docker ps --filter label="$SCYTHE_LABEL" --format "table {{.ID}}\t{{.Names}}\t{{.Labels}}"
+        dids=$(docker ps --filter label="$SCYTHE_LABEL" --format "{{.Names}}")
+        if [ -z "$dids" ]; then
+            echo "scythe-server: status: no running sessions for tester '$TESTER_ID'" >&2
+        else
+            echo "scythe-server: status: running containers for tester '$TESTER_ID'" >&2
+            echo $dids
+            echo "scythe-server: status: getting remote hash..."
+            curl -s "$SCYTHE_TM_ENDPOINT" && echo
+        fi
     ;;
-    get)
+    backup)
         check_conf
         docker cp "scythe-${TESTER_ID}-redis":/data/appendonly.aof "${SCYTHE_UPLOADS}/"
         rsync --server --sender -vlogDtprz . "${SCYTHE_UPLOADS}/" # the leading / is crucial to have the content without uploads/ on the client
