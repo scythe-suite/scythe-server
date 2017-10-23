@@ -69,6 +69,7 @@ const TheSummary = Vue.component('the-summary', {
           return 0;
       },
       click: function(item, index, event) {
+          if (!this.session.auth) return;
           if (!(event.target && event.target.parentNode && event.target.parentNode.parentNode)) return;
           let cellIndex = event.target.parentNode.parentNode.cellIndex;
           let idx = cellIndex - 2;
@@ -92,7 +93,9 @@ const TheSummary = Vue.component('the-summary', {
     computed: {
         fields: function() {
             if (!this.session.id) return [];
-            let fields = [{key: 'uid', sortable: true}, {key: 'info', sortable: true}];
+            let fields = this.session.auth ?
+                [{key: 'uid', sortable: true}, {key: 'info', sortable: true}]
+              : [{key: 'uid', sortable: true}];
             this.session.exercises.forEach(
                 e => fields.push({key: e, sortable: true, formatter: 'resultFormatter'})
             );
