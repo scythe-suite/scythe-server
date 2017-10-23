@@ -111,7 +111,7 @@ EOF
         check_conf
         echo "scythe-server: auth: use this URL to access the dashboard with '$REMAINING_ARGS' permissions" >&2
         auth=$(docker run --network scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --rm -i scythe/stserver auth -s "$SESSION_ID" $REMAINING_ARGS)
-        echo "$SCYTHE_DASHBOARD"
+        echo "$SCYTHE_DASHBOARD$auth"
     ;;
     status)
         check_conf
