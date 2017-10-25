@@ -83,11 +83,14 @@ const TheSummary = Vue.component('the-summary', {
           let tot = STORE.session.casenum[key];
           if (!value) return '&nbsp;';
           if (!value.compile) return '<div class="progress"><div class="progress-bar" role="progressbar" style="width: 100%" ></div></div>';
-          return `<div class="progress">
-            <div class="progress-bar bg-danger" role="progressbar" style="width: ${(100*value.errors)/tot}%" >${value.errors}</div>
-            <div class="progress-bar bg-warning" role="progressbar" style="width: ${(100*value.diffs)/tot}%" >${value.diffs}</div>
-            <div class="progress-bar bg-success" role="progressbar" style="width: ${(100*value.oks)/tot}%">${value.oks}</div>
-            </div>`;
+          res = '';
+          if (value.errors)
+            res += `<div class="progress-bar bg-danger" role="progressbar" style="width: ${(100*value.errors)/tot}%" >${value.errors}</div>`;
+          if (value.diffs)
+            res += `<div class="progress-bar bg-warning" role="progressbar" style="width: ${(100*value.diffs)/tot}%" >${value.diffs}</div>`;
+          if (value.oks)
+            res += `<div class="progress-bar bg-success" role="progressbar" style="width: ${(100*value.oks)/tot}%">${value.oks}</div>`;
+          return `<div class="progress">${res}</div>`;
       }
     },
     computed: {
@@ -97,7 +100,12 @@ const TheSummary = Vue.component('the-summary', {
                 [{key: 'uid', sortable: true}, {key: 'info', sortable: true}]
               : [{key: 'uid', sortable: true}];
             this.session.exercises.forEach(
-                e => fields.push({key: e, sortable: true, formatter: 'resultFormatter'})
+                e => fields.push({
+                    key: e,
+                    label: e.substr(3),
+                    sortable: true,
+                    formatter: 'resultFormatter'
+                })
             );
             return fields;
         },
