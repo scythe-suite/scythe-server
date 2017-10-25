@@ -76,7 +76,7 @@ EOF
             echo "scythe-server: push-st: installing st '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
         fi
         cat > "$SCYTHE_ST_CONF"
-        echo "scythe-server: push-st: loading configurations on stserver..."
+        echo "scythe-server: push-st: loading configurations on stserver..." >&2
         docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
     ;;
     start)
@@ -92,9 +92,9 @@ EOF
         echo "scythe-server: start: started tm 'scythe-${SCYTHE_NAME}-tm' with conf '$SCYTHE_TM_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
         did=$(docker run -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/stserver stage -wH /uploads -s "$SESSION_ID")
         echo "scythe-server: start: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
-        echo "scythe-server: start: attempting to sign..."
+        echo "scythe-server: start: attempting to sign..." >&2
         docker run --network scythe --rm -i --entrypoint sh scythe/stserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python -c 'from urllib2 import urlopen; exec urlopen( \"http://scythe-router/tm/$TESTER_ID/$SESSION_ID/000000\" ).read()' ) && cd /tmp/test && find"
-        echo "scythe-server: start: getting remote hash..."
+        echo "scythe-server: start: getting remote hash..." >&2
         curl -s "$SCYTHE_TM_ENDPOINT" && echo
     ;;
     stop)
@@ -111,7 +111,7 @@ EOF
         check_conf
         echo "scythe-server: auth: use this URL to access the dashboard with '$REMAINING_ARGS' permissions" >&2
         auth=$(docker run --network scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --rm -i scythe/stserver auth -s "$SESSION_ID" $REMAINING_ARGS)
-        echo "$SCYTHE_DASHBOARD$auth"
+        echo "$SCYTHE_DASHBOARD$auth" >&2
     ;;
     status)
         check_conf
@@ -121,7 +121,7 @@ EOF
         else
             echo "scythe-server: status: running containers for tester '$TESTER_ID'" >&2
             echo $dids
-            echo "scythe-server: status: getting remote hash..."
+            echo "scythe-server: status: getting remote hash..." >&2
             curl -s "$SCYTHE_TM_ENDPOINT" && echo
         fi
     ;;
@@ -133,7 +133,7 @@ EOF
     logtail)
         check_conf
         echo "scythe-server: logtail: tailing '$SESSION_ID' logs for tester '$TESTER_ID', hit ctrl-c to stop..." >&2
-        tail -f "$SCYTHE_ROOT/uploads"/*.log
+        tail -f "$SCYTHE_ROOT/uploads"/*.log >&2
     ;;
     version)
         echo "scythe-server: version: version v$SCYTHE_SERVER_VERSION" >&2
