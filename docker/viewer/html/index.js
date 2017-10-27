@@ -27,6 +27,22 @@ const STORE = {
 const app = new Vue({data: {currentView: 'the-summary'}});
 
 Vue.component('icon', window.VueAwesome);
+Vue.use(window.VueTimeago, {
+  name: 'timeago', // component name, `timeago` by default
+  locale: 'en-US',
+  locales: {
+    'en-US': [
+      "just now",
+      ["%s second ago", "%s seconds ago"],
+      ["%s minute ago", "%s minutes ago"],
+      ["%s hour ago", "%s hours ago"],
+      ["%s day ago", "%s days ago"],
+      ["%s week ago", "%s weeks ago"],
+      ["%s month ago", "%s months ago"],
+      ["%s year ago", "%s years ago"]
+    ]
+  }
+});
 
 const TheHome = Vue.component('the-home', {
     template: '#home-template'
@@ -56,7 +72,7 @@ const TheSummary = Vue.component('the-summary', {
     data: () => ({session: STORE.session}),
     methods: {
       customSort: function(a, b, key) {
-          if (key=='uid' || key =='info') return null; // resort to default sort
+          if (key == 'uid' || key == 'info' || key == 'timestamp') return null; // resort to default sort
           a = a[key]; b = b[key];
           if (a === undefined) return 1;
           if (b === undefined) return -1;
@@ -97,12 +113,12 @@ const TheSummary = Vue.component('the-summary', {
         fields: function() {
             if (!this.session.id) return [];
             let fields = this.session.auth ?
-                [{key: 'uid', sortable: true}, {key: 'info', sortable: true}]
-              : [{key: 'uid', sortable: true}];
+                [{key: 'uid', sortable: true}, {key: 'info', sortable: true}, {key: 'timestamp', sortable: true}]
+              : [{key: 'uid', sortable: true}, {key: 'timestamp', sortable: true}];
             this.session.exercises.forEach(
                 e => fields.push({
                     key: e,
-                    label: e.substr(3),
+                    label: e.substr(3).replace(/_/g, ' '),
                     sortable: true,
                     formatter: 'resultFormatter'
                 })
