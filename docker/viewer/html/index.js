@@ -88,7 +88,7 @@ const TheSummary = Vue.component('the-summary', {
           if (!this.session.auth) return;
           if (!(event.target && event.target.parentNode && event.target.parentNode.parentNode)) return;
           let cellIndex = event.target.parentNode.parentNode.cellIndex;
-          let idx = cellIndex - 2;
+          let idx = cellIndex - 3; // this is the number of columns not including exercises
           let exercise = this.session.exercises[idx];
           if (!exercise) return;
           set_details(item.uid, item.timestamp, exercise);
