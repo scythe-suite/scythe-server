@@ -1,4 +1,5 @@
 scythe-server.log
-release
-docker/deps
-test
+release/
+docker/deps/
+test/
+docker/viewer/html/
