@@ -1,20 +1,14 @@
 FROM openjdk:8-jdk-alpine
 MAINTAINER Massimo Santini "santini@di.unimi.it"
-RUN apk add --no-cache --update python py-pip libevent
-RUN apk add --no-cache --virtual .build-deps \
-        coreutils \
+RUN apk add --no-cache --update python py-pip; \
+    apk add --no-cache --virtual .build-deps \
         gcc \
-        linux-headers \
-        bsd-compat-headers \
-        make \
         python-dev \
-        musl-dev \
-        libevent-dev; \
-        pip install gunicorn gevent; \
+        musl-dev; \
+        pip install eventlet; \
         apk del .build-deps
 ENV PYTHONPATH=/bin/sf:/bin/st
 ENTRYPOINT ["/bin/entrypoint.sh"]
-CMD [ "gunicorn", "--access-logfile", "-", "--log-level", "INFO", "--error-logfile", "-", "-k", "gevent", "-w", "4", "-b", "0.0.0.0:8000", "st.web:app" ]
 COPY sf /bin
 COPY st /bin
 COPY wait-for /bin
