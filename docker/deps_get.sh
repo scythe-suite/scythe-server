@@ -18,14 +18,14 @@ fi
 if [ ! -r ../deps/tm ]; then
     last_release_url=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-suite/tristo-mietitore/releases/latest")
     version="${last_release_url##*/}"
-    echo "Getting sf $version:"
+    echo "Getting tm $version:"
     (cd ../deps && curl -#LO "https://github.com/scythe-suite/tristo-mietitore/releases/download/$version/tm")
 fi
 
 if [ ! -r ../deps/site.tgz ]; then
     last_release_url=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-suite/scythe-viewer-ng/releases/latest")
     version="${last_release_url##*/}"
-    echo "Getting scithe-viewer-ng $version:"
+    echo "Getting site.tgz $version:"
     (cd ../deps && curl -#LO "https://github.com/scythe-suite/scythe-viewer-ng/releases/download/$version/site.tgz")
 fi
 
