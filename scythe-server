@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export SCYTHE_SERVER_VERSION=0.6.4
+export SCYTHE_SERVER_VERSION=0.7.0
 
 export TESTER_ID="$1" # this is safe since it is in .ssh/authorized_keys
 if [ -z "$TESTER_ID" ]; then
@@ -45,67 +45,60 @@ fi
 
 echo -e "$(date)\t$SSH_CONNECTION\t$TESTER_ID\t$SCYTHE_COMMAND\t$SESSION_ID" >> "$HOME/scythe-server.log"
 
-check_conf() {
-    if [ ! -r "$SCYTHE_TM_CONF" ]; then
-        echo "scythe-server: missing tm configuation for tester '$TESTER_ID'" >&2
-        exit 1
-    fi
-    if [ ! -r "$SCYTHE_ST_CONF" ]; then
-        echo "scythe-server: missing st configuation for tester '$TESTER_ID'" >&2
-        exit 1
-    fi
-}
-
 case "$SCYTHE_COMMAND" in
-    push-tm)
+    start-tm)
+        did=$(docker ps -a --filter name="scythe-${SCYTHE_NAME}-tm" --format '{{.ID}}')
+        if [ ! -z "$did" ]; then
+            echo "scythe-server: sart-tm: killing old instance..." $(docker rm -f $did) >&2
+        fi
         if [ -r "$SCYTHE_TM_CONF" ]; then
-            echo "scythe-server: push-tm: replacing tm '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
+            echo "scythe-server: start-tm: replacing '$SESSION_ID' configuration for '$TESTER_ID'" >&2
         else
-            echo "scythe-server: push-tm: installing tm '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
+            echo "scythe-server: start-tm: installing '$SESSION_ID' configuration for '$TESTER_ID'" >&2
         fi
         cat > "$SCYTHE_TM_CONF" <<EOF
 UPLOAD_DIR = '/uploads'
 BASE_URL = '$SCYTHE_TM_ENDPOINT'
 EOF
         cat >> "$SCYTHE_TM_CONF"
+        echo "scythe-server: start-tm: removing signature for test UID '000000' in '$SESSION_ID' for tester '$TESTER_ID'" >&2
+        rm -f "$SCYTHE_UPLOADS/000000/SIGNATURE.tsv"
+        did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_TM_CONF":/app/conf.py:ro scythe/tmserver)
+        echo "scythe-server: start-tm: started 'scythe-${SCYTHE_NAME}-tm' with conf '$SCYTHE_TM_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
+        echo "scythe-server: start-tm: attempting to sign..." >&2
+        docker run --network scythe --rm -i --entrypoint sh scythe/stserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python -c 'from urllib2 import urlopen; exec urlopen( \"http://scythe-router/tm/$TESTER_ID/$SESSION_ID/000000\" ).read()' ) && cd /tmp/test && find"
+        echo "scythe-server: start-tm: getting hash from router..." >&2
+        curl -s "$SCYTHE_TM_ENDPOINT" && echo
     ;;
-    push-st)
+    start-st)
+        did=$(docker ps -a --filter name="scythe-${SCYTHE_NAME}-st" --format '{{.ID}}')
+        if [ ! -z "$did" ]; then
+            echo "scythe-server: start-st: killing old instance..." $(docker rm -f $did) >&2
+        fi
         if [ -r "$SCYTHE_ST_CONF" ]; then
-            echo "scythe-server: push-st: replacing st '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
+            old_hash=$(docker run --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe/tmserver tm hashconf /conf.py)
+            echo "scythe-server: start-st: replacing '$SESSION_ID' configuration for tester '$TESTER_ID' with hash '$old_hash'" >&2
         else
-            echo "scythe-server: push-st: installing st '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
+            old_hash=
+            echo "scythe-server: start-st: installing '$SESSION_ID' configuration for tester '$TESTER_ID'" >&2
         fi
         cat > "$SCYTHE_ST_CONF"
-        echo "scythe-server: push-st: loading configurations on stserver..." >&2
-        docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
-    ;;
-    restart)
-        check_conf
-        echo "scythe-server: start: about to warm restart '$SESSION_ID' for tester '$TESTER_ID'" >&2
-        did=$(docker ps -a --filter name="scythe-${SCYTHE_NAME}-tm" --format '{{.ID}}')
-        if [ ! -z "$did" ]; then
-            echo "scythe-server: sart: killing old instance..." $(docker rm -f $did) >&2
+        if [ -z "$old_hash" ]; then
+            echo "scythe-server: start-st: loading configurations on stserver..." >&2
+            docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
+        else
+            new_hash=$(docker run --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe/tmserver tm hashconf /conf.py)
+            if [ "$old_hash" != "$new_hash" ]; then
+                echo "scythe-server: start-st: detected configuration change, new hash '$new_hash', nuking old data..." >&2
+                docker run -e ST_DEBUG=1 -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe/stserver nuke -s "$SESSION_ID"
+                echo "scythe-server: start-st: loading new configurations on stserver..." >&2
+                docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
+            else
+                echo "scythe-server: start-st: no configuration change, we are all set..." >&2
+            fi
         fi
-        did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_TM_CONF":/app/conf.py:ro scythe/tmserver)
-        echo "scythe-server: start: restarted tm 'scythe-${SCYTHE_NAME}-tm' with conf '$SCYTHE_TM_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
-    ;;
-    start)
-        check_conf
-        echo "scythe-server: start: about to start '$SESSION_ID' for tester '$TESTER_ID'" >&2
-        echo "scythe-server: start: removing signature for test UID '000000' in '$SESSION_ID' for tester '$TESTER_ID'" >&2
-        rm -f "$SCYTHE_UPLOADS/000000/SIGNATURE.tsv"
-        dids=$(docker ps -a --filter label="$SCYTHE_LABEL" --format '{{.ID}}')
-        if [ ! -z "$dids" ]; then
-            echo "scythe-server: sart: killing old instances..." $(docker rm -f $dids) >&2
-        fi
-        did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_TM_CONF":/app/conf.py:ro scythe/tmserver)
-        echo "scythe-server: start: started tm 'scythe-${SCYTHE_NAME}-tm' with conf '$SCYTHE_TM_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
         did=$(docker run -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/stserver stage -wH /uploads -s "$SESSION_ID")
-        echo "scythe-server: start: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
-        echo "scythe-server: start: attempting to sign..." >&2
-        docker run --network scythe --rm -i --entrypoint sh scythe/stserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python -c 'from urllib2 import urlopen; exec urlopen( \"http://scythe-router/tm/$TESTER_ID/$SESSION_ID/000000\" ).read()' ) && cd /tmp/test && find"
-        echo "scythe-server: start: getting remote hash..." >&2
-        curl -s "$SCYTHE_TM_ENDPOINT" && echo
+        echo "scythe-server: start-st: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
     ;;
     stop)
         check_conf
