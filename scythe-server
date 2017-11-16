@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export SCYTHE_SERVER_VERSION=0.6.3
+export SCYTHE_SERVER_VERSION=0.6.4
 
 export TESTER_ID="$1" # this is safe since it is in .ssh/authorized_keys
 if [ -z "$TESTER_ID" ]; then
@@ -78,6 +78,16 @@ EOF
         cat > "$SCYTHE_ST_CONF"
         echo "scythe-server: push-st: loading configurations on stserver..." >&2
         docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
+    ;;
+    restart)
+        check_conf
+        echo "scythe-server: start: about to warm restart '$SESSION_ID' for tester '$TESTER_ID'" >&2
+        did=$(docker ps -a --filter name="scythe-${SCYTHE_NAME}-tm" --format '{{.ID}}')
+        if [ ! -z "$did" ]; then
+            echo "scythe-server: sart: killing old instance..." $(docker rm -f $did) >&2
+        fi
+        did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_TM_CONF":/app/conf.py:ro scythe/tmserver)
+        echo "scythe-server: start: restarted tm 'scythe-${SCYTHE_NAME}-tm' with conf '$SCYTHE_TM_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
     ;;
     start)
         check_conf
