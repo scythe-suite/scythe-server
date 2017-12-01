@@ -34,7 +34,7 @@ export SCYTHE_NAME="${TESTER_ID}-${SESSION_ID}"
 export SCYTHE_LABEL="scythe=session-${SCYTHE_NAME}"
 
 export SCYTHE_TM_ENDPOINT="http://$(hostname)/tm/$TESTER_ID/$SESSION_ID/"
-export SCYTHE_DASHBOARD="http://$(hostname)/st/$TESTER_ID/#s/$SESSION_ID/$auth"
+export SCYTHE_DASHBOARD="$(hostname)/st/$TESTER_ID/#/session/$SESSION_ID/$auth"
 
 mkdir -p "$SCYTHE_ROOT"
 mkdir -p "$SCYTHE_UPLOADS"
