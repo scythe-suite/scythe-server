@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export SCYTHE_SERVER_VERSION=0.8.1
+export SCYTHE_SERVER_VERSION=0.9.0
 
 export TESTER_ID="$1" # this is safe since it is in .ssh/authorized_keys
 if [ -z "$TESTER_ID" ]; then
