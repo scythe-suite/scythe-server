@@ -95,13 +95,11 @@ EOF
         else
             new_hash=$(docker run --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe/tmserver tm hashconf /conf.py)
             if [ "$old_hash" != "$new_hash" ]; then
-                echo "scythe-server: start-st: detected configuration change, new hash '$new_hash', nuking old data..." >&2
+                echo "scythe-server: start-st: detected deep configuration change, new hash '$new_hash', nuking old data..." >&2
                 docker run -e ST_DEBUG=1 -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe/stserver nuke -s "$SESSION_ID"
-                echo "scythe-server: start-st: loading new configurations on stserver..." >&2
-                docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
-            else
-                echo "scythe-server: start-st: no configuration change, we are all set..." >&2
             fi
+            echo "scythe-server: start-st: loading new configurations on stserver..." >&2
+            docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
         fi
         did=$(docker run -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/stserver stage -wH /uploads -s "$SESSION_ID")
         echo "scythe-server: start-st: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
