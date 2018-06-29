@@ -1,7 +1,29 @@
 #!/bin/bash
 
-unset rgit
-version=$(grep 'SCYTHE_SERVER_VERSION=' ./scythe-server | cut -d= -f2)
+version=v$(grep 'SCYTHE_SERVER_VERSION=' ./scythe-server | cut -d= -f2)
 
 ./bin/mkdist
-gh-release create scythe-suite/scythe-server v${version}
+
+git tag $version
+git push --tags
+
+github-release release \
+    --user scythe-suite \
+    --repo scythe-server \
+    --tag $version \
+    --name "$1" \
+    --description "$2" \
+
+for file in commands example-site; do
+    github-release upload \
+        --user scythe-suite \
+        --repo scythe-server \
+        --tag $version \
+        --name ${file}.tgz \
+        --file ./release/${file}.tgz
+done
+
+github-release info \
+    --user scythe-suite \
+    --repo scythe-server \
+    --tag $version

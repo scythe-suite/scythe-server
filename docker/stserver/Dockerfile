@@ -1,12 +1,9 @@
 FROM openjdk:8-jdk-alpine
 MAINTAINER Massimo Santini "santini@di.unimi.it"
-RUN apk add --no-cache --update python py-pip; \
-    apk add --no-cache --virtual .build-deps \
-        gcc \
-        python-dev \
-        musl-dev; \
-        pip install eventlet; \
-        apk del .build-deps
+RUN apk add --no-cache --update python py-pip gcc musl-dev; \
+    apk add --no-cache --virtual .build-deps python-dev; \
+    pip install eventlet; \
+    apk del .build-deps
 ENV PYTHONPATH=/bin/sf:/bin/st
 ENTRYPOINT ["/bin/entrypoint.sh"]
 COPY sf /bin
