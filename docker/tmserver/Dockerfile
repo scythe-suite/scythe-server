@@ -1,9 +1,7 @@
 FROM python:2.7-alpine
 MAINTAINER Massimo Santini "santini@di.unimi.it"
-RUN apk add --no-cache --virtual .build-deps \
-        gcc \
-        python-dev \
-        musl-dev; \
+RUN apk add --no-cache --update python py-pip gcc musl-dev; \
+        apk add --no-cache --virtual .build-deps python-dev; \
         pip install eventlet; \
         apk del .build-deps
 EXPOSE 8000
