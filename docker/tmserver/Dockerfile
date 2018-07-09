@@ -1,5 +1,5 @@
 FROM python:2.7-alpine
-MAINTAINER Massimo Santini "santini@di.unimi.it"
+LABEL maintainer="Massimo Santini santini@di.unimi.it"
 RUN apk add --no-cache --update python py-pip gcc musl-dev; \
         apk add --no-cache --virtual .build-deps python-dev; \
         pip install eventlet; \

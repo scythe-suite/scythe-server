@@ -1,5 +1,5 @@
 FROM alpine:3.6
-MAINTAINER Massimo Santini "santini@di.unimi.it"
+LABEL maintainer="Massimo Santini santini@di.unimi.it"
 RUN	apk add --no-cache redis
 RUN mkdir /data && chown redis:redis /data
 VOLUME /data
