@@ -79,14 +79,14 @@ EOF
     nuke-restart)
         did=$(docker ps -a --filter name="scythe-${SCYTHE_NAME}-st" --format '{{.ID}}')
         if [ ! -z "$did" ]; then
-            echo "scythe-server: start-st: killing old instance..." $(docker rm -f $did) >&2
+            echo "scythe-server: nuke-restart: killing old instance..." $(docker rm -f $did) >&2
         fi
-        echo "scythe-server: start-st: detected deep configuration change (new hash '$new_hash'), nuking old data..." >&2
+        echo "scythe-server: nuke-restart: nuking old data..." >&2
         docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe/stserver nuke -s "$SESSION_ID"
-        echo "scythe-server: start-st: loading configurations on stserver..." >&2
+        echo "scythe-server: nuke-restart: loading configurations on stserver..." >&2
         docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
         did=$(docker run -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/stserver stage -wH /uploads -s "$SESSION_ID")
-        echo "scythe-server: start-st: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
+        echo "scythe-server: nuke-restart: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
     ;;
     start-st)
         did=$(docker ps -a --filter name="scythe-${SCYTHE_NAME}-st" --format '{{.ID}}')
