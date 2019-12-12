@@ -72,7 +72,8 @@ EOF
         did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_TM_CONF":/app/conf.py:ro scythe/tmserver)
         echo "scythe-server: start-tm: started 'scythe-${SCYTHE_NAME}-tm' with conf '$SCYTHE_TM_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
         echo "scythe-server: start-tm: attempting to sign..." >&2
-        docker run --network scythe --rm -i --entrypoint sh scythe/stserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python -c 'from urllib2 import urlopen; exec urlopen( \"http://scythe-router/tm/$TESTER_ID/$SESSION_ID/000000\" ).read()' ) && cd /tmp/test && find"
+        sleep 2
+        docker run --network scythe --rm -i --entrypoint sh scythe/tmserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python3 -c 'from urllib.request import urlopen; exec(urlopen(\"http://scythe-router/tm/$TESTER_ID/$SESSION_ID/000000\").read().decode(\"utf-8\"))' ) && cd /tmp/test && find"
         echo "scythe-server: start-tm: getting hash from router..." >&2
         curl -s "$SCYTHE_TM_ENDPOINT" && echo
     ;;
