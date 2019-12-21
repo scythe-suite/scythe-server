@@ -1,8 +1,8 @@
-FROM openjdk:8-jdk-alpine
+FROM openjdk:12-jdk-alpine
 LABEL maintainer="Massimo Santini santini@di.unimi.it"
-RUN apk add --no-cache --update python py-pip gcc musl-dev; \
-    apk add --no-cache --virtual .build-deps python-dev; \
-    pip install eventlet; \
+RUN apk add --no-cache --update python3 gcc musl-dev; \
+    apk add --no-cache --virtual .build-deps python3-dev; \
+    pip3 install eventlet; \
     apk del .build-deps
 ENV PYTHONPATH=/bin/sf:/bin/st
 ENTRYPOINT ["/bin/entrypoint.sh"]
