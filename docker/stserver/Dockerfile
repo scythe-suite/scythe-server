@@ -1,4 +1,4 @@
-FROM openjdk:12-jdk-alpine
+FROM openjdk:14-jdk-alpine
 LABEL maintainer="Massimo Santini santini@di.unimi.it"
 RUN apk add --no-cache --update python3 gcc musl-dev; \
     apk add --no-cache --virtual .build-deps python3-dev; \
