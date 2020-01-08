@@ -2,31 +2,31 @@ export VERSION=$(grep SCYTHE_SERVER_VERSION= ../../scythe-server | cut -d = -f2)
 export TAG='latest'
 
 if [ ! -r ../deps/st ]; then
-    last_release_url=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-suite/scythe-tester/releases/latest")
+    last_release_url=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-server/scythe-tester/releases/latest")
     version="${last_release_url##*/}"
     echo "Getting st $version:"
-    (cd ../deps && curl -#LO "https://github.com/scythe-suite/scythe-tester/releases/download/$version/st")
+    (cd ../deps && curl -#LO "https://github.com/scythe-server/scythe-tester/releases/download/$version/st")
 fi
 
 if [ ! -r ../deps/sf ]; then
-    last_release_url=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-suite/sim-fun-i/releases/latest")
+    last_release_url=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-server/sim-fun-i/releases/latest")
     version="${last_release_url##*/}"
     echo "Getting sf $version:"
-    (cd ../deps && curl -#LO "https://github.com/scythe-suite/sim-fun-i/releases/download/$version/sf")
+    (cd ../deps && curl -#LO "https://github.com/scythe-server/sim-fun-i/releases/download/$version/sf")
 fi
 
 if [ ! -r ../deps/tm ]; then
-    last_release_url=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-suite/tristo-mietitore/releases/latest")
+    last_release_url=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-server/tristo-mietitore/releases/latest")
     version="${last_release_url##*/}"
     echo "Getting tm $version:"
-    (cd ../deps && curl -#LO "https://github.com/scythe-suite/tristo-mietitore/releases/download/$version/tm")
+    (cd ../deps && curl -#LO "https://github.com/scythe-server/tristo-mietitore/releases/download/$version/tm")
 fi
 
 if [ ! -r ../deps/site.tgz ]; then
-    last_release_url=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-suite/scythe-viewer-ng/releases/latest")
+    last_release_url=$(curl -sLo /dev/null -w '%{url_effective}' "https://github.com/scythe-server/scythe-viewer-ng/releases/latest")
     version="${last_release_url##*/}"
     echo "Getting site.tgz $version:"
-    (cd ../deps && curl -#LO "https://github.com/scythe-suite/scythe-viewer-ng/releases/download/$version/site.tgz")
+    (cd ../deps && curl -#LO "https://github.com/scythe-server/scythe-viewer-ng/releases/download/$version/site.tgz")
 fi
 
 if [ ! -r ../deps/wait-for ]; then

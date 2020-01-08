@@ -1,4 +1,3 @@
 #!/bin/bash -e
 
-export REPO=scythe/redis
-docker push $REPO
+docker push docker.pkg.github.com/scythe-suite/scythe-server/redis

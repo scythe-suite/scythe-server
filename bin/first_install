@@ -7,8 +7,10 @@ for archive in commands example-site; do
     echo "scythe-server: installing $archive"
     curl -sL $url/$archive.tgz | tar zxvf -
 done
+ver="${last##*/}"
+ver="${ver#v}"
 for image in redis router stserver tmserver viewer; do
     echo "scythe-server: pulling $image"
-    docker pull scythe/$image:${last##*/}
-    docker pull scythe/$image:latest
+    docker pull docker.pkg.github.com/scythe-suite/scythe-server/$image:$ver
+    docker tag docker.pkg.github.com/scythe-suite/scythe-server/$image:$ver scythe-server/$image:latest
 done

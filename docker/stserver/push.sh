@@ -1,4 +1,3 @@
 #!/bin/bash -e
 
-export REPO=scythe/stserver
-docker push $REPO
+docker push docker.pkg.github.com/scythe-suite/scythe-server/stserver

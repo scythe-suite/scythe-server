@@ -1,8 +1,8 @@
 #!/bin/bash
 
-docker rmi -f $(docker images -qa scythe/redis)
-docker rmi -f $(docker images -qa scythe/router)
-docker rmi -f $(docker images -qa scythe/stserver)
-docker rmi -f $(docker images -qa scythe/tmserver)
-docker rmi -f $(docker images -qa scythe/viewer)
+docker rmi -f $(docker images -qa scythe-server/redis)
+docker rmi -f $(docker images -qa scythe-server/router)
+docker rmi -f $(docker images -qa scythe-server/stserver)
+docker rmi -f $(docker images -qa scythe-server/tmserver)
+docker rmi -f $(docker images -qa scythe-server/viewer)
 docker rmi -f $(docker images -qf dangling=true)

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export SCYTHE_SERVER_VERSION=1.0.0
+export SCYTHE_SERVER_VERSION=1.0.1
 
 export TESTER_ID="$1" # this is safe since it is in .ssh/authorized_keys
 if [ -z "$TESTER_ID" ]; then
@@ -69,11 +69,11 @@ EOF
         cat >> "$SCYTHE_TM_CONF"
         echo "scythe-server: start-tm: removing signature for test UID '000000' in '$SESSION_ID' for tester '$TESTER_ID'" >&2
         rm -f "$SCYTHE_UPLOADS/000000/SIGNATURE.tsv"
-        did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_TM_CONF":/app/conf.py:ro scythe/tmserver)
+        did=$(docker run --user "$(id -u):$(id -g)" -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-tm" -d --network=scythe -v "$SCYTHE_UPLOADS":/uploads -v "$SCYTHE_TM_CONF":/app/conf.py:ro scythe-server/tmserver)
         echo "scythe-server: start-tm: started 'scythe-${SCYTHE_NAME}-tm' with conf '$SCYTHE_TM_CONF', and uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
         echo "scythe-server: start-tm: attempting to sign..." >&2
         sleep 2
-        docker run --network scythe --rm -i --entrypoint sh scythe/tmserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python3 -c 'from urllib.request import urlopen; exec(urlopen(\"http://scythe-router/tm/$TESTER_ID/$SESSION_ID/000000\").read().decode(\"utf-8\"))' ) && cd /tmp/test && find"
+        docker run --network scythe --rm -i --entrypoint sh scythe-server/tmserver -c "mkdir /tmp/test && export HOME=/tmp/test; eval \$( python3 -c 'from urllib.request import urlopen; exec(urlopen(\"http://scythe-router/tm/$TESTER_ID/$SESSION_ID/000000\").read().decode(\"utf-8\"))' ) && cd /tmp/test && find"
         echo "scythe-server: start-tm: getting hash from router..." >&2
         curl -s "$SCYTHE_TM_ENDPOINT" && echo
     ;;
@@ -83,10 +83,10 @@ EOF
             echo "scythe-server: nuke-restart: killing old instance..." $(docker rm -f $did) >&2
         fi
         echo "scythe-server: nuke-restart: nuking old data..." >&2
-        docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe/stserver nuke -s "$SESSION_ID"
+        docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe-server/stserver nuke -s "$SESSION_ID"
         echo "scythe-server: nuke-restart: loading configurations on stserver..." >&2
-        docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
-        did=$(docker run -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/stserver stage -wH /uploads -s "$SESSION_ID")
+        docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe-server/stserver configure -c /conf.py -s "$SESSION_ID"
+        did=$(docker run -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe-server/stserver stage -wH /uploads -s "$SESSION_ID")
         echo "scythe-server: nuke-restart: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
     ;;
     start-st)
@@ -95,7 +95,7 @@ EOF
             echo "scythe-server: start-st: killing old instance..." $(docker rm -f $did) >&2
         fi
         if [ -r "$SCYTHE_ST_CONF" ]; then
-            old_hash=$(docker run --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe/tmserver tm hashconf /conf.py)
+            old_hash=$(docker run --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe-server/tmserver tm hashconf /conf.py)
             echo "scythe-server: start-st: replacing '$SESSION_ID' configuration for tester '$TESTER_ID' (old hash '$old_hash')" >&2
         else
             old_hash=
@@ -103,15 +103,15 @@ EOF
         fi
         cat > "$SCYTHE_ST_CONF"
         if [ ! -z "$old_hash" ]; then
-            new_hash=$(docker run --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe/tmserver tm hashconf /conf.py)
+            new_hash=$(docker run --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe-server/tmserver tm hashconf /conf.py)
             if [ "$old_hash" != "$new_hash" ]; then
                 echo "scythe-server: start-st: detected deep configuration change (new hash '$new_hash'), nuking old data..." >&2
-                docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe/stserver nuke -s "$SESSION_ID"
+                docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro scythe-server/stserver nuke -s "$SESSION_ID"
             fi
         fi
         echo "scythe-server: start-st: loading configurations on stserver..." >&2
-        docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe/stserver configure -c /conf.py -s "$SESSION_ID"
-        did=$(docker run -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe/stserver stage -wH /uploads -s "$SESSION_ID")
+        docker run -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --network scythe --rm -v "$SCYTHE_ST_CONF":/conf.py:ro  scythe-server/stserver configure -c /conf.py -s "$SESSION_ID"
+        did=$(docker run -l "$SCYTHE_LABEL" --name "scythe-${SCYTHE_NAME}-st" -d --network=scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" -v "$SCYTHE_UPLOADS":/uploads:ro scythe-server/stserver stage -wH /uploads -s "$SESSION_ID")
         echo "scythe-server: start-st: started st 'scythe-${SCYTHE_NAME}-st' with uploads in '$SCYTHE_UPLOADS' (docker id '$did')..." >&2
     ;;
     stop)
@@ -127,7 +127,7 @@ EOF
     auth)
         check_session
         echo "scythe-server: auth: use this URL to access the dashboard with '$REMAINING_ARGS' permissions" >&2
-        auth=$(docker run --network scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --rm -i scythe/stserver auth -s "$SESSION_ID" $REMAINING_ARGS)
+        auth=$(docker run --network scythe -e SCYTHE_REDIS_HOST="scythe-${TESTER_ID}-redis" --rm -i scythe-server/stserver auth -s "$SESSION_ID" $REMAINING_ARGS)
         echo "$SCYTHE_DASHBOARD$auth" >&2
     ;;
     status)

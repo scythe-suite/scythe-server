@@ -1,5 +1,7 @@
 export HERE=$(pwd)
 
+mkdir -p ../deps/
+
 rm -f ../deps/{sf,st,tm,site.tgz}
 
 echo "Building sf:"
