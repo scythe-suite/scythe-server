@@ -44,7 +44,7 @@ case "$ADMIN_COMMAND" in
         if [ ! -z "$dids" ]; then
             echo "scythe-admin: tester: killing old tester instances..." $(docker rm -f $dids) >&2
         fi
-        did=$(docker run -l "$SCYTHE_LABEL" -d -v "$REDIS_VOLUME:/data" --name "${SCYTHE_CONTAINER}-redis" --network=scythe scythe/redis)
+        did=$(docker run -l "$SCYTHE_LABEL" -d -v "$REDIS_VOLUME:/data" --name "${SCYTHE_CONTAINER}-redis" --network=scythe scythe-server/redis)
         echo "scythe-admin: tester: started container '${SCYTHE_CONTAINER}-redis' with volume '$REDIS_VOLUME' (docker id '$did')..." 2>&1
         did=$(docker run -l "$SCYTHE_LABEL" -d -e SCYTHE_REDIS_HOST="${SCYTHE_CONTAINER}-redis" --name "${SCYTHE_CONTAINER}-processor" --network=scythe scythe-server/stserver process -Nw $NUM_CPUS)
         echo "scythe-admin: tester: started container '${SCYTHE_CONTAINER}-processor' (docker id '$did')..." 2>&1

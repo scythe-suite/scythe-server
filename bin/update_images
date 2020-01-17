@@ -1,0 +1,8 @@
+#!/bin/bash
+
+for image in redis router stserver tmserver viewer; do
+    echo "scythe-server: pulling $image"
+    docker pull docker.pkg.github.com/scythe-suite/scythe-server/$image:latest
+    echo "scythe-server: tagging $image"
+    docker tag docker.pkg.github.com/scythe-suite/scythe-server/$image:latest scythe-server/$image:latest
+done

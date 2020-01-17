@@ -2,7 +2,7 @@
 
 export SCYTHE_SERVER_VERSION=1.0.2
 
-export TESTER_ID="$1" # this is safe since it is in .ssh/authorized_keys
+export TESTER_ID="$1" # this is safe since it is in .ssh/authorized_keys
 if [ -z "$TESTER_ID" ]; then
     echo "scythe-server: missing TESTER_ID" >&2
     exit 1
@@ -39,7 +39,7 @@ export SCYTHE_DASHBOARD="$(hostname)/st/$TESTER_ID/#/session/$SESSION_ID/$auth"
 mkdir -p "$SCYTHE_ROOT"
 mkdir -p "$SCYTHE_UPLOADS"
 if [ ! -r "$SCYTHE_UPLOADS/no.log" ]; then
-    touch "$SCYTHE_UPLOADS/no.log" # to avoid tail failures
+    touch "$SCYTHE_UPLOADS/no.log" # to avoid tail failures
 fi
 
 echo -e "$(date)\t$SSH_CONNECTION\t$TESTER_ID\t$SCYTHE_COMMAND\t$SESSION_ID" >> "$HOME/scythe-server.log"
