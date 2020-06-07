@@ -1,7 +1,7 @@
-FROM python:3.7-alpine
+FROM python:3-alpine
 LABEL maintainer="Massimo Santini santini@di.unimi.it"
-RUN apk add --no-cache --update python py-pip gcc musl-dev; \
-        apk add --no-cache --virtual .build-deps python-dev; \
+RUN apk add --no-cache --update python3 py-pip gcc musl-dev; \
+        apk add --no-cache --virtual .build-deps python3-dev; \
         pip install eventlet; \
         apk del .build-deps
 EXPOSE 8000

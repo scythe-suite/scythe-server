@@ -1,4 +1,4 @@
-FROM nginx:1.15.1-alpine
+FROM nginx:1.19-alpine
 LABEL maintainer="Massimo Santini santini@di.unimi.it"
 EXPOSE 80
 COPY nginx.conf /etc/nginx/nginx.conf

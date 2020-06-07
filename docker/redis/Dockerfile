@@ -1,4 +1,4 @@
-FROM alpine:3.6
+FROM alpine:3.12
 LABEL maintainer="Massimo Santini santini@di.unimi.it"
 RUN	apk add --no-cache redis
 RUN mkdir /data && chown redis:redis /data
